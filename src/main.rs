@@ -3,11 +3,13 @@ extern crate glium;
 
 use std::time::Instant;
 
-use glium::{Rect, BlitTarget, uniforms, glutin::dpi::PhysicalPosition};
 #[allow(unused_imports)]
-use glium::{glutin, texture, Surface};
+use glium::{
+    glutin::{self, event_loop::EventLoop, event::WindowEvent, event::Event, dpi::PhysicalSize},
+    texture, Surface, Rect, BlitTarget, uniforms
+};
 use rand::Rng;
-use crate::glutin::dpi::PhysicalSize;
+
 
 #[repr(C)]
 #[derive(Copy, Clone, Default)]
@@ -85,12 +87,6 @@ impl Simulation {
         let mut rng = rand::thread_rng();
         self.params.moveRight = rng.gen_bool(0.5);
         
-        let mut buffer: glium::uniforms::UniformBuffer<Params> = glium::uniforms::UniformBuffer::empty(display).unwrap();
-        {
-            let mut map = buffer.map_write();
-            map.write(self.params);
-        }
-
         let img_unit_format = glium::uniforms::ImageUnitFormat::RGBA32F;
         let write = glium::uniforms::ImageUnitAccess::Write;
         let output_data_img = self.output_data.image_unit(img_unit_format).unwrap().set_access(write);
@@ -117,16 +113,14 @@ const SIM_SHADER_SRC: &str = include_str!("../shaders/gen/falling_sand.glsl");
 
 
 fn main() {
-    let size = (512, 512);
-
-    let event_loop = glium::glutin::event_loop::EventLoop::new();
-    let wb = glutin::window::WindowBuilder::new()
-        .with_inner_size(PhysicalSize::<u32>::from(size));
-    let cb = glutin::ContextBuilder::new()
-        ;//.with_vsync(true)
-    let display = glium::Display::new(wb, cb, &event_loop).unwrap();
-
+    let size = (513, 512);
+    //let size = (1920, 1080);
+    let (event_loop, display) = create_window(size);
+    let (mut winit_platform, mut imgui_context) = imgui_init(&display);
+    let mut ui_renderer = imgui_glium_renderer::Renderer::init(&mut imgui_context, &display)
+        .expect("Failed to initialize UI renderer");
     let mut sim = Simulation::new(&display, size);
+
     let mut last_render = Instant::now();
     event_loop.run(move |event, _, control_flow| {
         let next_frame_time = std::time::Instant::now() +
@@ -135,59 +129,130 @@ fn main() {
         *control_flow = glutin::event_loop::ControlFlow::Poll;
         let frame_delta = last_render.elapsed();
         last_render = Instant::now();
-        println!("FPS: {}", 1.0f64 / frame_delta.as_secs_f64());
+        //println!("FPS: {}", 1.0f64 / frame_delta.as_secs_f64());
 
-        match event {
-            glutin::event::Event::NewEvents(cause) => match cause {
-                glutin::event::StartCause::Init => (),
-                glutin::event::StartCause::ResumeTimeReached { .. } => (),
-                _ => (),
-            },
-
-            glutin::event::Event::WindowEvent { event, .. } => match event {
-                glutin::event::WindowEvent::CursorMoved {position, ..} => {
-                    sim.params.mousePos = (position.x as f32 / size.0 as f32, position.y as f32 / size.1 as f32);
-                },
-                glutin::event::WindowEvent::MouseInput {state, button, ..} => {
-                    match button {
-                        glutin::event::MouseButton::Left => {
-                            sim.params.brushSize = sim.brush_size * (state == glutin::event::ElementState::Pressed) as u32;
-                        },
-                        _ => ()
-                    }
-                },
-                glutin::event::WindowEvent::MouseWheel {delta, .. } => {
-                    match delta {
-                        glutin::event::MouseScrollDelta::LineDelta(_x, y) => {
-                            let new = std::cmp::max(1, sim.brush_size as i32 + y.signum() as i32);
-                            sim.brush_size = new as u32;
-                            println!("Brush Size: {}", sim.brush_size);
-                        },
-                        _ => (),
-                    };
-                },
-                glutin::event::WindowEvent::CloseRequested => {
-                    *control_flow = glutin::event_loop::ControlFlow::Exit;
-                    return;
-                },
-                _ => return,
-            },
-            _ => (),
-        }
         sim.run(&display);
 
-        let mut target = display.draw();
-        target.clear_color(0.0, 0.5, 0.0, 1.0);
+        match event {
+            Event::NewEvents(cause) => match cause {
+                _ => {
+                    imgui_context.io_mut().update_delta_time(frame_delta);
+                }
+            },
+            Event::MainEventsCleared => {
+                let gl_window = display.gl_window();
+                winit_platform
+                    .prepare_frame(imgui_context.io_mut(), gl_window.window())
+                    .expect("Failed to prepare frame");
+                gl_window.window().request_redraw();
+            },
+            Event::RedrawRequested(_) => {
+                // Create frame for the all important `&imgui::Ui`
+                let ui = imgui_context.frame();
+                
+                ui.show_demo_window(&mut true);
+                let gl_window = display.gl_window();
+                
+                let mut target = display.draw();
+                target.clear_color(0.0, 0.5, 0.0, 1.0);
+                
+                // Render Simulation
+                let full_rect = Rect{left: 0, bottom: 0, width: size.0, height: size.1};
+                let full_blitt = BlitTarget{left: 0, bottom: size.1, width: size.0 as i32, height: -(size.1 as i32)};
+                target.blit_buffers_from_simple_framebuffer(
+                    &sim.output_color.as_surface(),
+                    &full_rect,
+                    &full_blitt,
+                    uniforms::MagnifySamplerFilter::Nearest,
+                    glium::BlitMask::color()
+                );
+                
+                // Render UI
+                winit_platform.prepare_render(ui, gl_window.window());
+                let ui_draw_data = imgui_context.render();
+                ui_renderer.render(&mut target, ui_draw_data).expect("Could not render UI.");
+                
+                target.finish().unwrap();
+            },
+            Event::WindowEvent { event: WindowEvent::CloseRequested, .. } => {
+                *control_flow = glutin::event_loop::ControlFlow::Exit;
+                return;
+            },
+            event => {
+                let gl_window = display.gl_window();
+                winit_platform.handle_event(imgui_context.io_mut(), gl_window.window(), &event);
+                if imgui_context.io().want_capture_mouse || imgui_context.io().want_capture_keyboard {
+                    return;
+                }
+                match event {
+                    Event::WindowEvent {event, .. } => match event {
+                        WindowEvent::KeyboardInput { input, .. } => {
+                        },
+                        WindowEvent::CursorMoved {position, ..} => {
+                            sim.params.mousePos = (position.x as f32 / size.0 as f32, position.y as f32 / size.1 as f32);
+                        },
+                        WindowEvent::MouseInput {state, button, ..} => {
+                            match button {
+                                glutin::event::MouseButton::Left => {
+                                    sim.params.brushSize = sim.brush_size * (state == glutin::event::ElementState::Pressed) as u32;
+                                },
+                                _ => ()
+                            }
+                        },
+                        WindowEvent::MouseWheel {delta, .. } => {
+                            match delta {
+                                glutin::event::MouseScrollDelta::LineDelta(_x, y) => {
+                                    let new = std::cmp::max(1, sim.brush_size as i32 + y.signum() as i32);
+                                    sim.brush_size = new as u32;
+                                    println!("Brush Size: {}", sim.brush_size);
+                                },
+                                _ => (),
+                            };
+                        },
+                        _ => (),
+                    },
+                    _ => (),
+                };
+            },
+        }
         
-        let full_rect = Rect{left: 0, bottom: 0, width: size.0, height: size.1};
-        let full_blitt = BlitTarget{left: 0, bottom: size.1, width: size.0 as i32, height: -(size.1 as i32)};
-        target.blit_buffers_from_simple_framebuffer(
-            &sim.output_color.as_surface(),
-            &full_rect,
-            &full_blitt,
-            uniforms::MagnifySamplerFilter::Nearest,
-            glium::BlitMask::color()
-        );
-        target.finish().unwrap();
     });
+}
+
+
+fn create_window(size : (u32, u32)) -> (EventLoop<()>, glium::Display) {
+    let event_loop = glium::glutin::event_loop::EventLoop::new();
+    let wb = glutin::window::WindowBuilder::new()
+        .with_inner_size(PhysicalSize::<u32>::from(size))
+        .with_title("SandEngine");
+    let cb = glutin::ContextBuilder::new()
+        ;//.with_vsync(true)
+    let display = glium::Display::new(wb, cb, &event_loop).unwrap();
+    
+    (event_loop, display)
+}
+
+
+fn imgui_init(display: &glium::Display) -> (imgui_winit_support::WinitPlatform, imgui::Context) {
+    let mut imgui_context = imgui::Context::create();
+    imgui_context.set_ini_filename(None);
+
+    let mut winit_platform = imgui_winit_support::WinitPlatform::init(&mut imgui_context);
+
+    let gl_window = display.gl_window();
+    let window = gl_window.window();
+
+    let dpi_mode = imgui_winit_support::HiDpiMode::Default;
+
+    winit_platform.attach_window(imgui_context.io_mut(), window, dpi_mode);
+
+    imgui_context
+        .fonts()
+        .add_font(&[imgui::FontSource::TtfData {
+            data: include_bytes!("../fonts/Fragment_Mono/FragmentMono-Regular.ttf"),
+            size_pixels: 15.0,
+            config: None,
+        }]);
+
+    (winit_platform, imgui_context)
 }
