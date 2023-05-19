@@ -1,0 +1,14 @@
+[remap]
+
+importer="glsl"
+type="RDShaderFile"
+uid="uid://dnt03d7j8ak6g"
+path="res://.godot/imported/liquid.glsl-aeba848f104dd350066fe97feae6ad5b.res"
+
+[deps]
+
+source_file="res://shaders/types/liquid.glsl"
+dest_files=["res://.godot/imported/liquid.glsl-aeba848f104dd350066fe97feae6ad5b.res"]
+
+[params]
+
