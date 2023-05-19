@@ -3,6 +3,7 @@ extern crate glium;
 
 use std::time::Instant;
 
+use glium::glutin::window::Icon;
 #[allow(unused_imports)]
 use glium::{
     glutin::{self, event_loop::EventLoop, event::WindowEvent, event::Event, dpi::PhysicalSize},
@@ -228,7 +229,17 @@ fn create_window(size : (u32, u32)) -> (EventLoop<()>, glium::Display) {
     let cb = glutin::ContextBuilder::new()
         ;//.with_vsync(true)
     let display = glium::Display::new(wb, cb, &event_loop).unwrap();
-    
+
+    let (icon_rgba, icon_width, icon_height) = {
+        let image = image::open("icon.png")
+            .expect("Failed to open icon path")
+            .into_rgba8();
+        let (width, height) = image.dimensions();
+        let rgba = image.into_raw();
+        (rgba, width, height)
+    };
+    let icon = Icon::from_rgba(icon_rgba, icon_width, icon_height).unwrap();
+    display.gl_window().window().set_window_icon(Some(icon));
     (event_loop, display)
 }
 
