@@ -3,6 +3,7 @@ extern crate glium;
 
 use std::time::Instant;
 
+use glium::glutin::dpi::PhysicalPosition;
 use glium::glutin::event::{VirtualKeyCode};
 use glium::glutin::window::Icon;
 //#[allow(unused_imports)]
@@ -12,7 +13,8 @@ use glium::{
 };
 pub mod simulation;
 use simulation::Simulation;
-
+pub mod renderer;
+use renderer::{Renderer, TextureDrawMode};
 
 
 // One texture for collision:
@@ -22,10 +24,10 @@ use simulation::Simulation;
 pub fn run() {
     let size = (640, 480);
     //let size = (1920, 1080);
-    let (event_loop, display) = create_window(size);
-    let (mut winit_platform, mut imgui_context) = imgui_init(&display);
-    let mut ui_renderer = imgui_glium_renderer::Renderer::init(&mut imgui_context, &display).expect("Failed to initialize UI renderer");
-    let mut sim = Simulation::new(&display, size);
+
+    let event_loop = glium::glutin::event_loop::EventLoop::new();
+    let mut renderer = Renderer::new(size, &event_loop);
+    let mut sim = Simulation::new(&renderer.display, size);
 
     let mut last_render = Instant::now();
     event_loop.run(move |event, _, control_flow| {
@@ -40,47 +42,26 @@ pub fn run() {
         match event {
             Event::NewEvents(cause) => match cause {
                 _ => {
-                    imgui_context.io_mut().update_delta_time(frame_delta);
+                    renderer.new_events(cause, frame_delta);
                 }
             },
             Event::MainEventsCleared => {
-                let gl_window = display.gl_window();
-                winit_platform
-                    .prepare_frame(imgui_context.io_mut(), gl_window.window())
-                    .expect("Failed to prepare frame");
-                gl_window.window().request_redraw();
+                renderer.prepare_frame();
                 sim.run();
             },
             Event::RedrawRequested(_) => {
-                // Create frame for the all important `&imgui::Ui`
-                let ui = imgui_context.frame();
-
-                ui.show_demo_window(&mut true);
-                let gl_window = display.gl_window();
-                
-                let mut target = display.draw();
-                target.clear_color(0.0, 0.5, 0.0, 1.0);
-                
-                // Render Simulation
-                sim.render(&target);
-                
-                // Render UI
-                winit_platform.prepare_render(ui, gl_window.window());
-                let ui_draw_data = imgui_context.render();
-                ui_renderer.render(&mut target, ui_draw_data).expect("Could not render UI.");
-                
-                target.finish().unwrap();
+                renderer.start_render();
+                renderer.render_texture(&sim.output_color, PhysicalPosition::new(0, 0), TextureDrawMode::KeepScale);
+                renderer.finish_render();
             },
             Event::WindowEvent { event: WindowEvent::CloseRequested, .. } => {
                 *control_flow = glutin::event_loop::ControlFlow::Exit;
                 return;
             },
             event => {
-                let gl_window = display.gl_window();
-                winit_platform.handle_event(imgui_context.io_mut(), gl_window.window(), &event);
-                if imgui_context.io().want_capture_mouse || imgui_context.io().want_capture_keyboard {
-                    return;
-                }
+                // if the UI etc. has already "consumed" those events, return
+                if renderer.process_events(&event) {return};
+
                 match event {
                     Event::WindowEvent {event, .. } => match event {
                         WindowEvent::KeyboardInput { input, .. } => {
@@ -98,7 +79,7 @@ pub fn run() {
                             }
                         },
                         WindowEvent::CursorMoved {position, ..} => {
-                            let dims = display.get_framebuffer_dimensions();
+                            let dims = renderer.display.get_framebuffer_dimensions();
                             sim.params.mousePos = (position.x as f32 / dims.0 as f32, position.y as f32 / dims.1 as f32);
                         },
                         WindowEvent::MouseInput {state, button, ..} => {

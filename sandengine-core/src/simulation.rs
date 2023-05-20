@@ -97,17 +97,4 @@ impl Simulation {
             }, self.workgroups.0, self.workgroups.1, self.workgroups.2);
         std::mem::swap(&mut self.input_data, &mut self.output_data);
     }
-
-    pub fn render(&self, target: &glium::Frame) {
-        let full_rect = Rect{left: 0, bottom: 0, width: self.size.0, height: self.size.1};
-        let dims = target.get_dimensions();
-        let full_blitt = BlitTarget{left: 0, bottom: dims.1, width: dims.0 as i32, height: -(dims.1 as i32)};
-        target.blit_buffers_from_simple_framebuffer(
-            &self.output_color.as_surface(),
-            &full_rect,
-            &full_blitt,
-            uniforms::MagnifySamplerFilter::Nearest,
-            glium::BlitMask::color()
-        );
-    }
 }
