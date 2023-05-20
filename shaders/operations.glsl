@@ -47,52 +47,27 @@ void setCell(ivec2 pos, Cell cell) {
     imageStore(output_data, pos, data);
     imageStore(output_color, pos, color);
 
-    ivec2[8] neighpos = getDiagonalNeighbours(pos, true);
-    float[8] neighs = float[8](
-        float(isCollider(getCell(neighpos[0]))),
-        float(isCollider(getCell(neighpos[1]))),
-        float(isCollider(getCell(neighpos[2]))),
-        float(isCollider(getCell(neighpos[3]))),
-        float(isCollider(getCell(neighpos[4]))),
-        float(isCollider(getCell(neighpos[5]))),
-        float(isCollider(getCell(neighpos[6]))),
-        float(isCollider(getCell(neighpos[7]))));
+    // ivec2[8] neighpos = getDiagonalNeighbours(pos, false);
+    // float[8] neighs = float[8](
+    //     float(isCollider(getCell(neighpos[0]))),
+    //     float(isCollider(getCell(neighpos[1]))),
+    //     float(isCollider(getCell(neighpos[2]))),
+    //     float(isCollider(getCell(neighpos[3]))),
+    //     float(isCollider(getCell(neighpos[4]))),
+    //     float(isCollider(getCell(neighpos[5]))),
+    //     float(isCollider(getCell(neighpos[6]))),
+    //     float(isCollider(getCell(neighpos[7]))));
     
-    float gx =    (1.0 * neighs[2]) +         0         + (-1.0 * neighs[1])
-                + (2.0 * neighs[4]) +         0         + (-2.0 * neighs[3])
-                + (1.0 * neighs[6]) +         0         + (-1.0 * neighs[7]);
+    // float gx =    (1.0 * neighs[2]) +         0         + (-1.0 * neighs[1])
+    //             + (2.0 * neighs[4]) +         0         + (-2.0 * neighs[3])
+    //             + (1.0 * neighs[6]) +         0         + (-1.0 * neighs[7]);
     
-    float gy =    (1.0 * neighs[2]) + (2.0 * neighs[0]) + (1.0 * neighs[1])
-                +         0         +         0         +        0
-                +(-1.0 * neighs[6]) +(-2.0 * neighs[5]) +(-1.0 * neighs[7]);
+    // float gy =    (1.0 * neighs[2]) + (2.0 * neighs[0]) + (1.0 * neighs[1])
+    //             +         0         +         0         +        0
+    //             +(-1.0 * neighs[6]) +(-2.0 * neighs[5]) +(-1.0 * neighs[7]);
     
-    float g = sqrt(pow(gx, 2.0) + pow(gy, 2.0));
-    if (isCollider(getCell(neighpos[0]))) { 
-        imageStore(collision_data, pos, vec4(vec3(1.0), 1.0));
-    } else {
-        imageStore(collision_data, pos, vec4(vec3(0.0), 1.0));
-    }
-
-    // if (
-    //     // Diagonal backslash
-    //     (isCollider(getCell(pos, UPLEFT)) && isCollider(getCell(pos, DOWNRIGHT)))
-    //     // Diagonal /
-    //      || (isCollider(getCell(pos, UPRIGHT)) && isCollider(getCell(pos, DOWNLEFT)))
-    //     // Horizontal -
-    //      || (isCollider(getCell(pos, LEFT)) && isCollider(getCell(pos, RIGHT)))
-    //     // Vertical |
-    //      || (isCollider(getCell(pos, UP)) && isCollider(getCell(pos, DOWN)))
-    //     // Vertical Edge |_
-    //      || (isCollider(getCell(pos, UP)) && (isCollider(getCell(pos, DOWNRIGHT)) || isCollider(getCell(pos, DOWNLEFT))))
-    //      || (isCollider(getCell(pos, DOWN)) && (isCollider(getCell(pos, UPRIGHT)) || isCollider(getCell(pos, UPLEFT))))
-    //     // Horizontal Edge 
-    //      || (isCollider(getCell(pos, LEFT)) && (isCollider(getCell(pos, UPRIGHT)) || isCollider(getCell(pos, DOWNRIGHT))))
-    //      || (isCollider(getCell(pos, RIGHT)) && (isCollider(getCell(pos, UPLEFT)) || isCollider(getCell(pos, DOWNLEFT))))
-    //      ) {
-    //     imageStore(collision_data, pos, vec4(vec3(1.0), 1.0));
-    // } else {
-    //     imageStore(collision_data, pos, vec4(vec3(0.0), 1.0));
-    // }
+    // float g = sqrt(pow(gx, 2.0) + pow(gy, 2.0));
+    // imageStore(collision_data, pos, vec4(vec3(g), 1.0));
 }
 void setCell(ivec2 pos, Material mat) {
     setCell(pos, Cell(mat, pos, pos));
@@ -102,9 +77,9 @@ void setCell(ivec2 pos, Material mat) {
 // Copies the data from another position to this position
 void pullCell(ivec2 from, ivec2 to) {
     Cell other = getCell(from);
-    if (!isSolid(other)) {
-        setCell(to, other);
-    } else {
+    if (isSolid(other)) {
         setCell(to, EMPTY);
+    } else {
+        setCell(to, other);
     }
 }
