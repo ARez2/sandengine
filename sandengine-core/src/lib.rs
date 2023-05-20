@@ -4,10 +4,10 @@ extern crate glium;
 use std::time::Instant;
 
 use glium::glutin::window::Icon;
-#[allow(unused_imports)]
+//#[allow(unused_imports)]
 use glium::{
     glutin::{self, event_loop::EventLoop, event::WindowEvent, event::Event, dpi::PhysicalSize},
-    texture, Surface, Rect, BlitTarget, uniforms
+    Surface, Rect, BlitTarget, uniforms
 };
 pub mod simulation;
 use simulation::Simulation;
@@ -19,7 +19,7 @@ use simulation::Simulation;
 // once the next line of coordinates starts until the next vec4(0.0) means one collision island
 
 pub fn run() {
-    let size = (513, 512);
+    let size = (512, 512);
     //let size = (1920, 1080);
     let (event_loop, display) = create_window(size);
     let (mut winit_platform, mut imgui_context) = imgui_init(&display);
@@ -29,8 +29,7 @@ pub fn run() {
 
     let mut last_render = Instant::now();
     event_loop.run(move |event, _, control_flow| {
-        let next_frame_time = std::time::Instant::now() +
-            std::time::Duration::from_nanos(16_666_667);
+        //let next_frame_time = std::time::Instant::now() + std::time::Duration::from_nanos(16_666_667);
         //*control_flow = glutin::event_loop::ControlFlow::WaitUntil(next_frame_time);
         *control_flow = glutin::event_loop::ControlFlow::Poll;
         let frame_delta = last_render.elapsed();
@@ -63,15 +62,7 @@ pub fn run() {
                 target.clear_color(0.0, 0.5, 0.0, 1.0);
                 
                 // Render Simulation
-                let full_rect = Rect{left: 0, bottom: 0, width: size.0, height: size.1};
-                let full_blitt = BlitTarget{left: 0, bottom: size.1, width: size.0 as i32, height: -(size.1 as i32)};
-                target.blit_buffers_from_simple_framebuffer(
-                    &sim.output_color.as_surface(),
-                    &full_rect,
-                    &full_blitt,
-                    uniforms::MagnifySamplerFilter::Nearest,
-                    glium::BlitMask::color()
-                );
+                sim.render(&target);
                 
                 // Render UI
                 winit_platform.prepare_render(ui, gl_window.window());

@@ -1,4 +1,4 @@
-use glium::{texture::{self, RawImage2d}, uniforms};
+use glium::{texture::{self, RawImage2d}, uniforms, Rect, BlitTarget, Surface};
 use rand::Rng;
 
 
@@ -98,5 +98,17 @@ impl Simulation {
                 time: self.params.time,
             }, self.workgroups.0, self.workgroups.1, self.workgroups.2);
         std::mem::swap(&mut self.input_data, &mut self.output_data);
+    }
+
+    pub fn render(&self, target: &glium::Frame) {
+        let full_rect = Rect{left: 0, bottom: 0, width: self.size.0, height: self.size.1};
+        let full_blitt = BlitTarget{left: 0, bottom: self.size.1, width: self.size.0 as i32, height: -(self.size.1 as i32)};
+        target.blit_buffers_from_simple_framebuffer(
+            &self.output_color.as_surface(),
+            &full_rect,
+            &full_blitt,
+            uniforms::MagnifySamplerFilter::Nearest,
+            glium::BlitMask::color()
+        );
     }
 }
