@@ -33,14 +33,12 @@ pub fn run() {
         *control_flow = glutin::event_loop::ControlFlow::Poll;
         let frame_delta = last_render.elapsed();
         last_render = Instant::now();
-        let fps = 1.0f64 / frame_delta.as_secs_f64();
+        let _fps = 1.0f64 / frame_delta.as_secs_f64();
         //println!("FPS: {}, delta (ms): {}", fps, frame_delta.as_secs_f64() * 1000.0);
 
         match event {
-            Event::NewEvents(cause) => match cause {
-                _ => {
-                    renderer.new_events(cause, frame_delta);
-                }
+            Event::NewEvents(cause) => {
+                renderer.new_events(cause, frame_delta);
             },
             Event::MainEventsCleared => {
                 renderer.prepare_frame();
@@ -53,7 +51,6 @@ pub fn run() {
             },
             Event::WindowEvent { event: WindowEvent::CloseRequested, .. } => {
                 *control_flow = glutin::event_loop::ControlFlow::Exit;
-                return;
             },
             event => {
                 // if the UI etc. has already "consumed" those events, return

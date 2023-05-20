@@ -123,7 +123,7 @@ impl Renderer {
 
     pub fn finish_render(&mut self) {
         if let Some(f) = self.current_frame.take() {
-            let _ = f.finish().unwrap();
+            f.finish().unwrap();
         }
     }
 

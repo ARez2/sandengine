@@ -7,12 +7,12 @@ pub fn run() {
 
 
 fn build_shaders() {
-    std::fs::read_dir("shaders/").unwrap().into_iter().filter(|f| {
+    std::fs::read_dir("shaders/").unwrap().filter(|f| {
         if let Ok(file) = f {
             return file.path().is_file() && file.path().extension().unwrap() == "glsl";
         } else {
-            return false;
-        };
+            false
+        }
     }).for_each(|file| {
         let mut had_includes: bool = false;
 
@@ -24,8 +24,7 @@ fn build_shaders() {
             had_includes = true;
             let incl_path = contents
                     .split_at(start_idx + searchstr.len()).1
-                    .split("\"\n")
-                    .nth(0)
+                    .split("\"\n").next()
                     .unwrap();
             println!("{}: Include path: {}", path.clone().display(), incl_path);
             let incl_src = std::fs::read_to_string(path.parent().unwrap().join(incl_path));
