@@ -23,17 +23,23 @@ fn build_shaders() {
         while start_idx != 0 {
             had_includes = true;
             let incl_path = contents
-                                    .split_at(start_idx + searchstr.len()).1
-                                    .split("\"\n")
-                                    .nth(0)
-                                    .unwrap();
+                    .split_at(start_idx + searchstr.len()).1
+                    .split("\"\n")
+                    .nth(0)
+                    .unwrap();
             println!("{}: Include path: {}", path.clone().display(), incl_path);
             let incl_src = std::fs::read_to_string(path.parent().unwrap().join(incl_path));
             if let Ok(mut incl_src) = incl_src {
                 incl_src.push_str("\n\n\n");
                 let start_idx = contents.find(searchstr).unwrap();
                 let end_idx = start_idx + searchstr.len() + incl_path.len() + 1;
-                contents.replace_range(start_idx..end_idx, incl_src.as_str());
+
+                let char_before = contents.chars().nth(start_idx - 1).unwrap();
+                if char_before == ' ' || char_before == '/' {
+                    contents.replace_range(start_idx..end_idx, "");
+                } else {
+                    contents.replace_range(start_idx..end_idx, incl_src.as_str());
+                }
             }
 
             start_idx = contents.find("#include ").unwrap_or(0);
