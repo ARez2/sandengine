@@ -74,7 +74,6 @@ impl Simulation {
     }
 
     pub fn run(&mut self) {
-        self.params.brushMaterial = 3;
         let mut rng = rand::thread_rng();
         self.params.moveRight = rng.gen_bool(0.5);
         

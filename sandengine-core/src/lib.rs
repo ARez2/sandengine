@@ -3,11 +3,12 @@ extern crate glium;
 
 use std::time::Instant;
 
+use glium::glutin::event::{VirtualKeyCode};
 use glium::glutin::window::Icon;
 //#[allow(unused_imports)]
 use glium::{
     glutin::{self, event_loop::EventLoop, event::WindowEvent, event::Event, dpi::PhysicalSize},
-    Surface, Rect, BlitTarget, uniforms
+    Surface
 };
 pub mod simulation;
 use simulation::Simulation;
@@ -83,6 +84,16 @@ pub fn run() {
                 match event {
                     Event::WindowEvent {event, .. } => match event {
                         WindowEvent::KeyboardInput { input, .. } => {
+                            match input.virtual_keycode.unwrap() {
+                                VirtualKeyCode::Key0 => sim.params.brushMaterial = 0,
+                                VirtualKeyCode::Key1 => sim.params.brushMaterial = 1,
+                                VirtualKeyCode::Key2 => sim.params.brushMaterial = 2,
+                                VirtualKeyCode::Key3 => sim.params.brushMaterial = 3,
+                                VirtualKeyCode::Key4 => sim.params.brushMaterial = 6,
+                                VirtualKeyCode::Key5 => sim.params.brushMaterial = 7,
+                                VirtualKeyCode::Key6 => sim.params.brushMaterial = 8,
+                                _ => (),
+                            };
                         },
                         WindowEvent::CursorMoved {position, ..} => {
                             let dims = display.get_framebuffer_dimensions();
