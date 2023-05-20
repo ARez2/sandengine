@@ -1,6 +1,4 @@
-use std::ops::Deref;
-
-use glium::{Surface, uniforms, BlitTarget, Rect, Frame, glutin::{window::Icon, event_loop::{self, EventLoop}, self, dpi::PhysicalSize, event::Event}};
+use glium::{Surface, uniforms, BlitTarget, Rect, Frame, glutin::{window::Icon, event_loop::{EventLoop}, self, dpi::PhysicalSize, event::Event}};
 use imgui_winit_support::WinitPlatform;
 
 
@@ -12,21 +10,6 @@ pub enum TextureDrawMode {
 }
 
 
-#[derive(Copy, Clone)]
-struct Vertex {
-	position: [f32; 2]
-}
-
-implement_vertex!(Vertex, position);
-const QUAD: [Vertex; 4] = [
-    Vertex{position: [-1.0, -1.0]},
-    Vertex{position: [ 1.0, -1.0]},
-    Vertex{position: [ 1.0,  1.0]},
-    Vertex{position: [-1.0,  1.0]}];
-
-
-
-
 
 pub struct Renderer {
     pub display: glium::Display,
@@ -35,10 +18,6 @@ pub struct Renderer {
     ui_renderer: imgui_glium_renderer::Renderer,
 
     current_frame: Option<Frame>,
-
-    quad_vertex_buffer: glium::VertexBuffer<Vertex>,
-    quad_index_buffer: glium::IndexBuffer<u16>,
-
 }
 
 impl Renderer {
@@ -63,11 +42,8 @@ impl Renderer {
         let icon = Icon::from_rgba(icon_rgba, icon_width, icon_height).unwrap();
         display.gl_window().window().set_window_icon(Some(icon));
 
-        let (mut winit_platform, mut imgui_context) = Renderer::imgui_init(&display);
+        let (winit_platform, mut imgui_context) = Renderer::imgui_init(&display);
         let ui_renderer = imgui_glium_renderer::Renderer::init(&mut imgui_context, &display).expect("Failed to initialize UI renderer");
-
-        let quad_vertex_buffer = glium::VertexBuffer::new(&display, &QUAD).unwrap();
-        let quad_index_buffer = glium::IndexBuffer::new(&display, glium::index::PrimitiveType::TriangleFan, &[0u16, 1, 2, 3]).unwrap();
 
         Renderer {
             display,
@@ -76,9 +52,6 @@ impl Renderer {
             ui_renderer,
 
             current_frame: None,
-
-            quad_vertex_buffer,
-            quad_index_buffer,
         }
     }
 
@@ -117,7 +90,7 @@ impl Renderer {
     }
 
 
-    pub fn new_events(&mut self, event: glium::glutin::event::StartCause, delta: std::time::Duration) {
+    pub fn new_events(&mut self, _event: glium::glutin::event::StartCause, delta: std::time::Duration) {
         self.imgui_context.io_mut().update_delta_time(delta);
     }
 

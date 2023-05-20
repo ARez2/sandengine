@@ -5,11 +5,8 @@ use std::time::Instant;
 
 use glium::glutin::dpi::PhysicalPosition;
 use glium::glutin::event::{VirtualKeyCode};
-use glium::glutin::window::Icon;
-//#[allow(unused_imports)]
 use glium::{
-    glutin::{self, event_loop::EventLoop, event::WindowEvent, event::Event, dpi::PhysicalSize},
-    Surface
+    glutin::{self, event::WindowEvent, event::Event},
 };
 pub mod simulation;
 use simulation::Simulation;
@@ -108,54 +105,4 @@ pub fn run() {
         }
         
     });
-}
-
-
-fn create_window(size : (u32, u32)) -> (EventLoop<()>, glium::Display) {
-    let event_loop = glium::glutin::event_loop::EventLoop::new();
-    let wb = glutin::window::WindowBuilder::new()
-        .with_inner_size(PhysicalSize::<u32>::from(size))
-        //.with_fullscreen(Some(glutin::window::Fullscreen::Borderless(None)))
-        .with_title("SandEngine");
-    let cb = glutin::ContextBuilder::new()
-        .with_gl(glutin::GlRequest::Latest)
-        ;//.with_vsync(true)
-    let display = glium::Display::new(wb, cb, &event_loop).unwrap();
-
-    let (icon_rgba, icon_width, icon_height) = {
-        let image = image::open("icon.png")
-            .expect("Failed to open icon path")
-            .into_rgba8();
-        let (width, height) = image.dimensions();
-        let rgba = image.into_raw();
-        (rgba, width, height)
-    };
-    let icon = Icon::from_rgba(icon_rgba, icon_width, icon_height).unwrap();
-    display.gl_window().window().set_window_icon(Some(icon));
-    (event_loop, display)
-}
-
-
-fn imgui_init(display: &glium::Display) -> (imgui_winit_support::WinitPlatform, imgui::Context) {
-    let mut imgui_context = imgui::Context::create();
-    imgui_context.set_ini_filename(None);
-
-    let mut winit_platform = imgui_winit_support::WinitPlatform::init(&mut imgui_context);
-
-    let gl_window = display.gl_window();
-    let window = gl_window.window();
-
-    let dpi_mode = imgui_winit_support::HiDpiMode::Default;
-
-    winit_platform.attach_window(imgui_context.io_mut(), window, dpi_mode);
-
-    imgui_context
-        .fonts()
-        .add_font(&[imgui::FontSource::TtfData {
-            data: include_bytes!("../../fonts/Fragment_Mono/FragmentMono-Regular.ttf"),
-            size_pixels: 15.0,
-            config: None,
-        }]);
-
-    (winit_platform, imgui_context)
 }
