@@ -56,8 +56,8 @@ void setCell(ivec2 pos, Cell cell) {
         float(isCollider(getCell(neighpos[4]))),
         float(isCollider(getCell(neighpos[5]))),
         float(isCollider(getCell(neighpos[6]))),
-        float(isCollider(getCell(neighpos[7]))),
-        );
+        float(isCollider(getCell(neighpos[7]))));
+    
     float gx =    (1.0 * neighs[2]) +         0         + (-1.0 * neighs[1])
                 + (2.0 * neighs[4]) +         0         + (-2.0 * neighs[3])
                 + (1.0 * neighs[6]) +         0         + (-1.0 * neighs[7]);
@@ -67,7 +67,7 @@ void setCell(ivec2 pos, Cell cell) {
                 +(-1.0 * neighs[6]) +(-2.0 * neighs[5]) +(-1.0 * neighs[7]);
     
     float g = sqrt(pow(gx, 2.0) + pow(gy, 2.0));
-    if (neighs[0] > 0.0) { 
+    if (isCollider(getCell(neighpos[0]))) { 
         imageStore(collision_data, pos, vec4(vec3(1.0), 1.0));
     } else {
         imageStore(collision_data, pos, vec4(vec3(0.0), 1.0));

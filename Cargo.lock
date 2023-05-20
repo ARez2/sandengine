@@ -1329,6 +1329,13 @@ dependencies = [
 name = "sandengine"
 version = "0.1.0"
 dependencies = [
+ "sandengine-core",
+]
+
+[[package]]
+name = "sandengine-core"
+version = "0.1.0"
+dependencies = [
  "glium",
  "image",
  "imgui",

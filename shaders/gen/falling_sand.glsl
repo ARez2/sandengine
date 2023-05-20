@@ -169,7 +169,6 @@ struct Material {
 #define TYPE_LIQUID 3
 #define TYPE_GAS 4
 
-
 #define EMPTY Material(0, vec4(0.0, 0.0, 0.0, 0.0), 1.0,  0, vec3(0.0, 0.0, 0.0), TYPE_EMPTY)
 #define SAND  Material(1, vec4(1.0, 1.0, 0.0, 1.0), 3.0,  1, vec3(0.0, 0.0, 0.0), TYPE_MOVSOLID)
 #define SOLID Material(2, vec4(0.4, 0.4, 0.4, 1.0), 4.0,  0, vec3(0.0, 0.0, 0.0), TYPE_SOLID)
@@ -258,7 +257,7 @@ uniform sampler2D input_data;
 layout(rgba32f) uniform writeonly image2D output_data;
 layout(rgba32f) uniform writeonly image2D output_color;
 // uniform Params {
-// } params;
+// } params 
 uniform bool moveRight;
 uniform vec2 mousePos;
 uniform uint brushSize;
@@ -330,8 +329,8 @@ void setCell(ivec2 pos, Cell cell) {
         float(isCollider(getCell(neighpos[4]))),
         float(isCollider(getCell(neighpos[5]))),
         float(isCollider(getCell(neighpos[6]))),
-        float(isCollider(getCell(neighpos[7]))),
-        );
+        float(isCollider(getCell(neighpos[7]))));
+    
     float gx =    (1.0 * neighs[2]) +         0         + (-1.0 * neighs[1])
                 + (2.0 * neighs[4]) +         0         + (-2.0 * neighs[3])
                 + (1.0 * neighs[6]) +         0         + (-1.0 * neighs[7]);
@@ -341,7 +340,7 @@ void setCell(ivec2 pos, Cell cell) {
                 +(-1.0 * neighs[6]) +(-2.0 * neighs[5]) +(-1.0 * neighs[7]);
     
     float g = sqrt(pow(gx, 2.0) + pow(gy, 2.0));
-    if (neighs[0] > 0.0) { 
+    if (isCollider(getCell(neighpos[0]))) { 
         imageStore(collision_data, pos, vec4(vec3(1.0), 1.0));
     } else {
         imageStore(collision_data, pos, vec4(vec3(0.0), 1.0));

@@ -14,7 +14,6 @@ struct Material {
 #define TYPE_LIQUID 3
 #define TYPE_GAS 4
 
-
 #define EMPTY Material(0, vec4(0.0, 0.0, 0.0, 0.0), 1.0,  0, vec3(0.0, 0.0, 0.0), TYPE_EMPTY)
 #define SAND  Material(1, vec4(1.0, 1.0, 0.0, 1.0), 3.0,  1, vec3(0.0, 0.0, 0.0), TYPE_MOVSOLID)
 #define SOLID Material(2, vec4(0.4, 0.4, 0.4, 1.0), 4.0,  0, vec3(0.0, 0.0, 0.0), TYPE_SOLID)

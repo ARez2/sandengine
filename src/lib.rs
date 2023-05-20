@@ -1,10 +1,12 @@
 
 
+pub fn run() {
+    build_shaders();
+    sandengine_core::run();
+}
 
-fn main() {
-    // Tell Cargo that if the given file changes, to rerun this build script.
-    println!("cargo:rerun-if-changed=shaders/");
 
+fn build_shaders() {
     std::fs::read_dir("shaders/").unwrap().into_iter().filter(|f| {
         if let Ok(file) = f {
             return file.path().is_file() && file.path().extension().unwrap() == "glsl";
@@ -25,13 +27,12 @@ fn main() {
                                     .split("\"\n")
                                     .nth(0)
                                     .unwrap();
-            println!("Incl path: {}", incl_path);
+            println!("{}: Include path: {}", path.clone().display(), incl_path);
             let incl_src = std::fs::read_to_string(path.parent().unwrap().join(incl_path));
             if let Ok(mut incl_src) = incl_src {
                 incl_src.push_str("\n\n\n");
                 let start_idx = contents.find(searchstr).unwrap();
                 let end_idx = start_idx + searchstr.len() + incl_path.len() + 1;
-                println!("Start: {}, Size: {}", start_idx, end_idx - start_idx);
                 contents.replace_range(start_idx..end_idx, incl_src.as_str());
             }
 

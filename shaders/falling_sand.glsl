@@ -18,7 +18,7 @@ uniform sampler2D input_data;
 layout(rgba32f) uniform writeonly image2D output_data;
 layout(rgba32f) uniform writeonly image2D output_color;
 // uniform Params {
-// } params;
+// } params 
 uniform bool moveRight;
 uniform vec2 mousePos;
 uniform uint brushSize;
