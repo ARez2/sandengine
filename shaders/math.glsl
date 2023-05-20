@@ -83,14 +83,14 @@ ivec2[8] getDiagonalNeighbours(ivec2 pos, bool moveRight) {
     ivec2 neighs[8];
     if (moveRight) {
         ivec2 neighs[8] = {
-            pos + UP,
-            pos + UPRIGHT,
-            pos + UPLEFT,
-            pos + RIGHT,
-            pos + LEFT,
-            pos + DOWN,
-            pos + DOWNLEFT,
-            pos + DOWNRIGHT,
+            pos + UP, // 0
+            pos + UPRIGHT, // 1
+            pos + UPLEFT, // 2
+            pos + RIGHT, // 3
+            pos + LEFT, // 4
+            pos + DOWN, // 5
+            pos + DOWNLEFT, // 6
+            pos + DOWNRIGHT, // 7
         };
     } else {
         ivec2 neighs[8] = {

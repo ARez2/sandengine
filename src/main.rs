@@ -54,6 +54,7 @@ struct Simulation {
     input_data: texture::Texture2d,
     output_data: texture::Texture2d,
     output_color: texture::Texture2d,
+    collision_data: texture::Texture2d,
     brush_size: u32,
     params: Params,
 }
@@ -78,6 +79,7 @@ impl Simulation {
             input_data: texture::Texture2d::with_format(display, empty_data(size), format, mip).unwrap(),
             output_data: texture::Texture2d::with_format(display, empty_data(size), format, mip).unwrap(),
             output_color: texture::Texture2d::with_format(display, empty_data(size), format, mip).unwrap(),
+            collision_data: texture::Texture2d::with_format(display, empty_data(size), format, mip).unwrap(),
             brush_size: 1,
             params: Params::new(),
         }
@@ -92,12 +94,14 @@ impl Simulation {
         let write = glium::uniforms::ImageUnitAccess::Write;
         let output_data_img = self.output_data.image_unit(img_unit_format).unwrap().set_access(write);
         let output_color_img = self.output_color.image_unit(img_unit_format).unwrap().set_access(write);
+        let collision_img = self.collision_data.image_unit(img_unit_format).unwrap().set_access(uniforms::ImageUnitAccess::ReadWrite);
 
         self.compute_shader.execute(
             uniform! {
                 input_data: &self.input_data,
                 output_data: output_data_img,
                 output_color: output_color_img,
+                collision_data: collision_img,
                 moveRight: self.params.moveRight,
                 mousePos: self.params.mousePos,
                 brushSize: self.params.brushSize,
@@ -108,9 +112,13 @@ impl Simulation {
     }
 }
 
+
 const SIM_SHADER_SRC: &str = include_str!("../shaders/gen/falling_sand.glsl");
 
 
+// One texture for collision:
+// each pixel holds a normalized coordinate of a collision point. If the pixel value is vec4(0.0) this means nothing/ gap
+// once the next line of coordinates starts until the next vec4(0.0) means one collision island
 
 
 fn main() {
@@ -130,7 +138,7 @@ fn main() {
         *control_flow = glutin::event_loop::ControlFlow::Poll;
         let frame_delta = last_render.elapsed();
         last_render = Instant::now();
-        //println!("FPS: {}", 1.0f64 / frame_delta.as_secs_f64());
+        let fps = 1.0f64 / frame_delta.as_secs_f64();
 
         sim.run(&display);
 
@@ -150,7 +158,7 @@ fn main() {
             Event::RedrawRequested(_) => {
                 // Create frame for the all important `&imgui::Ui`
                 let ui = imgui_context.frame();
-                
+
                 ui.show_demo_window(&mut true);
                 let gl_window = display.gl_window();
                 
@@ -161,7 +169,7 @@ fn main() {
                 let full_rect = Rect{left: 0, bottom: 0, width: size.0, height: size.1};
                 let full_blitt = BlitTarget{left: 0, bottom: size.1, width: size.0 as i32, height: -(size.1 as i32)};
                 target.blit_buffers_from_simple_framebuffer(
-                    &sim.output_color.as_surface(),
+                    &sim.collision_data.as_surface(),
                     &full_rect,
                     &full_blitt,
                     uniforms::MagnifySamplerFilter::Nearest,

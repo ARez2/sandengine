@@ -25,6 +25,8 @@ uniform uint brushSize;
 uniform int brushMaterial;
 uniform float time;
 
+layout(rgba32f) uniform image2D collision_data;
+
 layout(binding = 4) uniform sampler2D input_light;
 layout(rgba32f, binding = 5) uniform image2D output_light;
 layout(rgba32f, binding = 6) uniform image2D output_effects;

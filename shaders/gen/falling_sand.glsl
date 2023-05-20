@@ -127,14 +127,14 @@ ivec2[8] getDiagonalNeighbours(ivec2 pos, bool moveRight) {
     ivec2 neighs[8];
     if (moveRight) {
         ivec2 neighs[8] = {
-            pos + UP,
-            pos + UPRIGHT,
-            pos + UPLEFT,
-            pos + RIGHT,
-            pos + LEFT,
-            pos + DOWN,
-            pos + DOWNLEFT,
-            pos + DOWNRIGHT,
+            pos + UP, // 0
+            pos + UPRIGHT, // 1
+            pos + UPLEFT, // 2
+            pos + RIGHT, // 3
+            pos + LEFT, // 4
+            pos + DOWN, // 5
+            pos + DOWNLEFT, // 6
+            pos + DOWNRIGHT, // 7
         };
     } else {
         ivec2 neighs[8] = {
@@ -265,6 +265,8 @@ uniform uint brushSize;
 uniform int brushMaterial;
 uniform float time;
 
+layout(rgba32f) uniform image2D collision_data;
+
 layout(binding = 4) uniform sampler2D input_light;
 layout(rgba32f, binding = 5) uniform image2D output_light;
 layout(rgba32f, binding = 6) uniform image2D output_effects;
@@ -299,6 +301,10 @@ Cell getCell(ivec2 pos, ivec2 offset) {
 }
 
 
+bool isCollider(Cell cell) {
+    return cell.mat != EMPTY;// && !isGas(cell) && !isLiquid(cell)
+}
+
 void setCell(ivec2 pos, Cell cell) {
     vec4 color = cell.mat.color;
     
@@ -314,6 +320,53 @@ void setCell(ivec2 pos, Cell cell) {
     ivec4 data = ivec4(cell.origPos.x, cell.origPos.y, cell.mat.id, 1);
     imageStore(output_data, pos, data);
     imageStore(output_color, pos, color);
+
+    ivec2[8] neighpos = getDiagonalNeighbours(pos, true);
+    float[8] neighs = float[8](
+        float(isCollider(getCell(neighpos[0]))),
+        float(isCollider(getCell(neighpos[1]))),
+        float(isCollider(getCell(neighpos[2]))),
+        float(isCollider(getCell(neighpos[3]))),
+        float(isCollider(getCell(neighpos[4]))),
+        float(isCollider(getCell(neighpos[5]))),
+        float(isCollider(getCell(neighpos[6]))),
+        float(isCollider(getCell(neighpos[7]))),
+        );
+    float gx =    (1.0 * neighs[2]) +         0         + (-1.0 * neighs[1])
+                + (2.0 * neighs[4]) +         0         + (-2.0 * neighs[3])
+                + (1.0 * neighs[6]) +         0         + (-1.0 * neighs[7]);
+    
+    float gy =    (1.0 * neighs[2]) + (2.0 * neighs[0]) + (1.0 * neighs[1])
+                +         0         +         0         +        0
+                +(-1.0 * neighs[6]) +(-2.0 * neighs[5]) +(-1.0 * neighs[7]);
+    
+    float g = sqrt(pow(gx, 2.0) + pow(gy, 2.0));
+    if (neighs[0] > 0.0) { 
+        imageStore(collision_data, pos, vec4(vec3(1.0), 1.0));
+    } else {
+        imageStore(collision_data, pos, vec4(vec3(0.0), 1.0));
+    }
+
+    // if (
+    //     // Diagonal backslash
+    //     (isCollider(getCell(pos, UPLEFT)) && isCollider(getCell(pos, DOWNRIGHT)))
+    //     // Diagonal /
+    //      || (isCollider(getCell(pos, UPRIGHT)) && isCollider(getCell(pos, DOWNLEFT)))
+    //     // Horizontal -
+    //      || (isCollider(getCell(pos, LEFT)) && isCollider(getCell(pos, RIGHT)))
+    //     // Vertical |
+    //      || (isCollider(getCell(pos, UP)) && isCollider(getCell(pos, DOWN)))
+    //     // Vertical Edge |_
+    //      || (isCollider(getCell(pos, UP)) && (isCollider(getCell(pos, DOWNRIGHT)) || isCollider(getCell(pos, DOWNLEFT))))
+    //      || (isCollider(getCell(pos, DOWN)) && (isCollider(getCell(pos, UPRIGHT)) || isCollider(getCell(pos, UPLEFT))))
+    //     // Horizontal Edge 
+    //      || (isCollider(getCell(pos, LEFT)) && (isCollider(getCell(pos, UPRIGHT)) || isCollider(getCell(pos, DOWNRIGHT))))
+    //      || (isCollider(getCell(pos, RIGHT)) && (isCollider(getCell(pos, UPLEFT)) || isCollider(getCell(pos, DOWNLEFT))))
+    //      ) {
+    //     imageStore(collision_data, pos, vec4(vec3(1.0), 1.0));
+    // } else {
+    //     imageStore(collision_data, pos, vec4(vec3(0.0), 1.0));
+    // }
 }
 void setCell(ivec2 pos, Material mat) {
     setCell(pos, Cell(mat, pos, pos));
