@@ -80,29 +80,25 @@ ivec2[4] getNeighbours(ivec2 pos) {
 }
 
 ivec2[8] getDiagonalNeighbours(ivec2 pos, bool moveRight) {
-    ivec2 neighs[8];
+    ivec2 neighs[8] = {
+        pos + UP,
+        pos + UPLEFT,
+        pos + UPRIGHT,
+        pos + LEFT,
+        pos + RIGHT,
+        pos + DOWN,
+        pos + DOWNLEFT,
+        pos + DOWNRIGHT,
+    };
     if (moveRight) {
-        ivec2 neighs[8] = {
-            pos + UP, // 0
-            pos + UPRIGHT, // 1
-            pos + UPLEFT, // 2
-            pos + RIGHT, // 3
-            pos + LEFT, // 4
-            pos + DOWN, // 5
-            pos + DOWNLEFT, // 6
-            pos + DOWNRIGHT, // 7
-        };
-    } else {
-        ivec2 neighs[8] = {
-            pos + UP,
-            pos + UPLEFT,
-            pos + UPRIGHT,
-            pos + LEFT,
-            pos + RIGHT,
-            pos + DOWN,
-            pos + DOWNLEFT,
-            pos + DOWNRIGHT,
-        };
+        neighs[0] = pos + UP;
+        neighs[1] = pos + UPRIGHT;
+        neighs[2] = pos + UPLEFT;
+        neighs[3] = pos + RIGHT;
+        neighs[4] = pos + LEFT;
+        neighs[5] = pos + DOWN;
+        neighs[6] = pos + DOWNRIGHT;
+        neighs[7] = pos + DOWNLEFT;
     }
     return neighs;
 }
