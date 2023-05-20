@@ -56,47 +56,40 @@ pub fn run() {
                 // if the UI etc. has already "consumed" those events, return
                 if renderer.process_events(&event) {return};
 
-                match event {
-                    Event::WindowEvent {event, .. } => match event {
-                        WindowEvent::KeyboardInput { input, .. } => {
-                            if let Some(code) = input.virtual_keycode {
-                                match code {
-                                    VirtualKeyCode::Key0 => sim.params.brushMaterial = 0,
-                                    VirtualKeyCode::Key1 => sim.params.brushMaterial = 1,
-                                    VirtualKeyCode::Key2 => sim.params.brushMaterial = 2,
-                                    VirtualKeyCode::Key3 => sim.params.brushMaterial = 3,
-                                    VirtualKeyCode::Key4 => sim.params.brushMaterial = 6,
-                                    VirtualKeyCode::Key5 => sim.params.brushMaterial = 7,
-                                    VirtualKeyCode::Key6 => sim.params.brushMaterial = 8,
-                                    _ => (),
-                                };
-                            }
-                        },
-                        WindowEvent::CursorMoved {position, ..} => {
-                            let dims = renderer.display.get_framebuffer_dimensions();
-                            sim.params.mousePos = (position.x as f32 / dims.0 as f32, position.y as f32 / dims.1 as f32);
-                        },
-                        WindowEvent::MouseInput {state, button, ..} => {
-                            match button {
-                                glutin::event::MouseButton::Left => {
-                                    sim.params.mousePressed = state == glutin::event::ElementState::Pressed;
-                                },
-                                _ => ()
-                            }
-                        },
-                        WindowEvent::MouseWheel {delta, .. } => {
-                            match delta {
-                                glutin::event::MouseScrollDelta::LineDelta(_x, y) => {
-                                    let new = std::cmp::max(1, sim.params.brushSize as i32 + y.signum() as i32);
-                                    sim.params.brushSize = new as u32;
-                                    println!("Brush Size: {}", sim.params.brushSize);
-                                },
+                if let Event::WindowEvent {event, .. } = event { match event {
+                    WindowEvent::KeyboardInput { input, .. } => {
+                        if let Some(code) = input.virtual_keycode {
+                            match code {
+                                VirtualKeyCode::Key0 => sim.params.brushMaterial = 0,
+                                VirtualKeyCode::Key1 => sim.params.brushMaterial = 1,
+                                VirtualKeyCode::Key2 => sim.params.brushMaterial = 2,
+                                VirtualKeyCode::Key3 => sim.params.brushMaterial = 3,
+                                VirtualKeyCode::Key4 => sim.params.brushMaterial = 6,
+                                VirtualKeyCode::Key5 => sim.params.brushMaterial = 7,
+                                VirtualKeyCode::Key6 => sim.params.brushMaterial = 8,
                                 _ => (),
                             };
-                        },
-                        _ => (),
+                        }
+                    },
+                    WindowEvent::CursorMoved {position, ..} => {
+                        let dims = renderer.display.get_framebuffer_dimensions();
+                        sim.params.mousePos = (position.x as f32 / dims.0 as f32, position.y as f32 / dims.1 as f32);
+                    },
+                    WindowEvent::MouseInput {state, button, ..} => {
+                        match button {
+                            glutin::event::MouseButton::Left => {
+                                sim.params.mousePressed = state == glutin::event::ElementState::Pressed;
+                            },
+                            _ => ()
+                        }
+                    },
+                    WindowEvent::MouseWheel {delta: glutin::event::MouseScrollDelta::LineDelta(_x, y), .. } => {
+                        let new = std::cmp::max(1, sim.params.brushSize as i32 + y.signum() as i32);
+                        sim.params.brushSize = new as u32;
+                        println!("Brush Size: {}", sim.params.brushSize);
                     },
                     _ => (),
+                    }
                 };
             },
         }
