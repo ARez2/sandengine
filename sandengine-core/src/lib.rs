@@ -84,16 +84,18 @@ pub fn run() {
                 match event {
                     Event::WindowEvent {event, .. } => match event {
                         WindowEvent::KeyboardInput { input, .. } => {
-                            match input.virtual_keycode.unwrap() {
-                                VirtualKeyCode::Key0 => sim.params.brushMaterial = 0,
-                                VirtualKeyCode::Key1 => sim.params.brushMaterial = 1,
-                                VirtualKeyCode::Key2 => sim.params.brushMaterial = 2,
-                                VirtualKeyCode::Key3 => sim.params.brushMaterial = 3,
-                                VirtualKeyCode::Key4 => sim.params.brushMaterial = 6,
-                                VirtualKeyCode::Key5 => sim.params.brushMaterial = 7,
-                                VirtualKeyCode::Key6 => sim.params.brushMaterial = 8,
-                                _ => (),
-                            };
+                            if let Some(code) = input.virtual_keycode {
+                                match code {
+                                    VirtualKeyCode::Key0 => sim.params.brushMaterial = 0,
+                                    VirtualKeyCode::Key1 => sim.params.brushMaterial = 1,
+                                    VirtualKeyCode::Key2 => sim.params.brushMaterial = 2,
+                                    VirtualKeyCode::Key3 => sim.params.brushMaterial = 3,
+                                    VirtualKeyCode::Key4 => sim.params.brushMaterial = 6,
+                                    VirtualKeyCode::Key5 => sim.params.brushMaterial = 7,
+                                    VirtualKeyCode::Key6 => sim.params.brushMaterial = 8,
+                                    _ => (),
+                                };
+                            }
                         },
                         WindowEvent::CursorMoved {position, ..} => {
                             let dims = display.get_framebuffer_dimensions();
