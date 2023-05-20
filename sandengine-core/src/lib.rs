@@ -19,12 +19,11 @@ use simulation::Simulation;
 // once the next line of coordinates starts until the next vec4(0.0) means one collision island
 
 pub fn run() {
-    let size = (512, 512);
+    let size = (640, 480);
     //let size = (1920, 1080);
     let (event_loop, display) = create_window(size);
     let (mut winit_platform, mut imgui_context) = imgui_init(&display);
-    let mut ui_renderer = imgui_glium_renderer::Renderer::init(&mut imgui_context, &display)
-        .expect("Failed to initialize UI renderer");
+    let mut ui_renderer = imgui_glium_renderer::Renderer::init(&mut imgui_context, &display).expect("Failed to initialize UI renderer");
     let mut sim = Simulation::new(&display, size);
 
     let mut last_render = Instant::now();
@@ -35,8 +34,7 @@ pub fn run() {
         let frame_delta = last_render.elapsed();
         last_render = Instant::now();
         let fps = 1.0f64 / frame_delta.as_secs_f64();
-
-        sim.run();
+        //println!("FPS: {}, delta (ms): {}", fps, frame_delta.as_secs_f64() * 1000.0);
 
         match event {
             Event::NewEvents(cause) => match cause {
@@ -50,6 +48,7 @@ pub fn run() {
                     .prepare_frame(imgui_context.io_mut(), gl_window.window())
                     .expect("Failed to prepare frame");
                 gl_window.window().request_redraw();
+                sim.run();
             },
             Event::RedrawRequested(_) => {
                 // Create frame for the all important `&imgui::Ui`
@@ -86,7 +85,8 @@ pub fn run() {
                         WindowEvent::KeyboardInput { input, .. } => {
                         },
                         WindowEvent::CursorMoved {position, ..} => {
-                            sim.params.mousePos = (position.x as f32 / size.0 as f32, position.y as f32 / size.1 as f32);
+                            let dims = display.get_framebuffer_dimensions();
+                            sim.params.mousePos = (position.x as f32 / dims.0 as f32, position.y as f32 / dims.1 as f32);
                         },
                         WindowEvent::MouseInput {state, button, ..} => {
                             match button {
@@ -121,8 +121,10 @@ fn create_window(size : (u32, u32)) -> (EventLoop<()>, glium::Display) {
     let event_loop = glium::glutin::event_loop::EventLoop::new();
     let wb = glutin::window::WindowBuilder::new()
         .with_inner_size(PhysicalSize::<u32>::from(size))
+        //.with_fullscreen(Some(glutin::window::Fullscreen::Borderless(None)))
         .with_title("SandEngine");
     let cb = glutin::ContextBuilder::new()
+        .with_gl(glutin::GlRequest::Latest)
         ;//.with_vsync(true)
     let display = glium::Display::new(wb, cb, &event_loop).unwrap();
 

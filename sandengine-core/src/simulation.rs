@@ -43,7 +43,6 @@ pub struct Simulation {
 }
 impl Simulation {
     pub fn new(display: &glium::Display, size: (u32, u32)) -> Self {
-        implement_uniform_block!(Params, mousePos, brushSize, brushMaterial, time, moveRight);
         
         let current_dir = std::env::current_dir().unwrap();
         let shader_src = std::fs::read_to_string(current_dir
@@ -75,7 +74,7 @@ impl Simulation {
     }
 
     pub fn run(&mut self) {
-        self.params.brushMaterial = 1;
+        self.params.brushMaterial = 3;
         let mut rng = rand::thread_rng();
         self.params.moveRight = rng.gen_bool(0.5);
         
@@ -102,7 +101,8 @@ impl Simulation {
 
     pub fn render(&self, target: &glium::Frame) {
         let full_rect = Rect{left: 0, bottom: 0, width: self.size.0, height: self.size.1};
-        let full_blitt = BlitTarget{left: 0, bottom: self.size.1, width: self.size.0 as i32, height: -(self.size.1 as i32)};
+        let dims = target.get_dimensions();
+        let full_blitt = BlitTarget{left: 0, bottom: dims.1, width: dims.0 as i32, height: -(dims.1 as i32)};
         target.blit_buffers_from_simple_framebuffer(
             &self.output_color.as_surface(),
             &full_rect,
