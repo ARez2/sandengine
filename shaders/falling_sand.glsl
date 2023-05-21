@@ -29,8 +29,8 @@ uniform ivec2 simSize;
 layout(rgba32f) uniform image2D collision_data;
 
 layout(binding = 4) uniform sampler2D input_light;
-layout(rgba32f, binding = 5) uniform image2D output_light;
-layout(rgba32f, binding = 6) uniform image2D output_effects;
+layout(rgba32f, binding = 5) uniform writeonly image2D output_light;
+layout(rgba32f, binding = 6) uniform writeonly image2D output_effects;
 
 
 #include "operations.glsl"

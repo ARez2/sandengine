@@ -29,6 +29,10 @@ bool isCollider(Cell cell) {
     return cell.mat != EMPTY;// && !isGas(cell) && !isLiquid(cell)
 }
 
+bool isLightObstacle(Cell cell) {
+    return cell.mat.emission == vec3(0.0) && (isSolid(cell) || isMovSolid(cell));
+}
+
 void setCell(ivec2 pos, Cell cell) {
     vec4 color = cell.mat.color;
     
@@ -43,29 +47,59 @@ void setCell(ivec2 pos, Cell cell) {
     //imageStore(output_effects, pos, vec4(cell.mat.emission, 1.0));
     ivec4 data = ivec4(cell.origPos.x, cell.origPos.y, cell.mat.id, 1);
     imageStore(output_data, pos, data);
-    imageStore(output_color, pos, color);
+    
+    vec4 light;
+    if (cell.mat.emission != vec3(0.0)) {
+        light = vec4(cell.mat.emission, 1.0);
+    } else {
+        float falloff = 0.0;
+        if (cell.mat.type == TYPE_EMPTY || cell.mat.type == TYPE_GAS) {
+            falloff = 0.99999;
+        } else if (cell.mat.type == TYPE_SOLID) {
+            falloff = 0.99999;
+        } else if (cell.mat.type == TYPE_MOVSOLID) {
+            falloff = 0.995;
+        } else if (cell.mat.type == TYPE_LIQUID) {
+            falloff = 0.999;
+        };
 
-    // ivec2[8] neighpos = getDiagonalNeighbours(pos, false);
-    // float[8] neighs = float[8](
-    //     float(isCollider(getCell(neighpos[0]))),
-    //     float(isCollider(getCell(neighpos[1]))),
-    //     float(isCollider(getCell(neighpos[2]))),
-    //     float(isCollider(getCell(neighpos[3]))),
-    //     float(isCollider(getCell(neighpos[4]))),
-    //     float(isCollider(getCell(neighpos[5]))),
-    //     float(isCollider(getCell(neighpos[6]))),
-    //     float(isCollider(getCell(neighpos[7]))));
-    
-    // float gx =    (1.0 * neighs[2]) +         0         + (-1.0 * neighs[1])
-    //             + (2.0 * neighs[4]) +         0         + (-2.0 * neighs[3])
-    //             + (1.0 * neighs[6]) +         0         + (-1.0 * neighs[7]);
-    
-    // float gy =    (1.0 * neighs[2]) + (2.0 * neighs[0]) + (1.0 * neighs[1])
-    //             +         0         +         0         +        0
-    //             +(-1.0 * neighs[6]) +(-2.0 * neighs[5]) +(-1.0 * neighs[7]);
-    
-    // float g = sqrt(pow(gx, 2.0) + pow(gy, 2.0));
-    // imageStore(collision_data, pos, vec4(vec3(g), 1.0));
+        ivec2[8] neighs = getDiagonalNeighbours(pos, moveRight);
+        vec3 avg_light = vec3(0.0);
+        vec3 max_light = vec3(0.0);
+        vec2 offsetsToLight = vec2(0.0);
+        
+        int num_lightsources = 0;
+        for (int n = 0; n < neighs.length(); n++) {
+            ivec2 neighPos = neighs[n];
+            Cell neigh = getCell(neighPos);
+            bool neighObstacle = isLightObstacle(neigh);
+            vec3 light_data = texelFetch(input_light, neighPos, 0).rgb * float(!neighObstacle);
+            if (light_data != vec3(0.0) || neigh.mat == EMPTY) {
+                num_lightsources += 1;
+                vec3 light = light_data * falloff;
+                avg_light += light;
+
+                vec3 m = light * 0.96;
+                max_light = max(max_light, m);
+            }
+            
+            offsetsToLight += (neighPos - pos) * length(light_data);
+        }
+        if (num_lightsources > 0) {
+            avg_light /= num_lightsources;
+        }
+        //                                     0.1
+        light = vec4(mix(avg_light, max_light, 0.1), 1.0);
+        //vec2 dirToLight = normalize(offsetsToLight);
+        //imageStore(output_color, pos, vec4(dirToMaxLight.x, dirToMaxLight.y, 0.0, 1.0));
+    }
+    imageStore(output_light, pos, light);
+    vec4 ambientLight = vec4(vec3(0.3), 1.0);
+    if (cell.mat == EMPTY) {
+        imageStore(output_color, pos, light);
+    } else {
+        imageStore(output_color, pos, color * min(light + ambientLight, vec4(1.0)));
+    }
 }
 void setCell(ivec2 pos, Material mat) {
     setCell(pos, Cell(mat, pos, pos));

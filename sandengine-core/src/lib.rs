@@ -46,7 +46,7 @@ pub fn run() {
             },
             Event::RedrawRequested(_) => {
                 renderer.start_render();
-                renderer.render_texture(&sim.output_color, PhysicalPosition::new(0, 0), TextureDrawMode::KeepScale);
+                renderer.render_texture(&sim.output_color, PhysicalPosition::new(0, 0), TextureDrawMode::Stretch);
                 renderer.finish_render();
             },
             Event::WindowEvent { event: WindowEvent::CloseRequested, .. } => {
@@ -67,6 +67,7 @@ pub fn run() {
                                 VirtualKeyCode::Key4 => sim.params.brushMaterial = 6,
                                 VirtualKeyCode::Key5 => sim.params.brushMaterial = 7,
                                 VirtualKeyCode::Key6 => sim.params.brushMaterial = 8,
+                                VirtualKeyCode::Key7 => sim.params.brushMaterial = 9,
                                 _ => (),
                             };
                         }

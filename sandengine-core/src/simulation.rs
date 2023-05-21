@@ -38,6 +38,8 @@ pub struct Simulation {
     input_data: texture::Texture2d,
     output_data: texture::Texture2d,
     pub output_color: texture::Texture2d,
+    input_light: texture::Texture2d,
+    pub output_light: texture::Texture2d,
     collision_data: texture::Texture2d,
     pub params: Params,
 }
@@ -68,6 +70,8 @@ impl Simulation {
             input_data: texture::Texture2d::with_format(display, RawImage2d::from_raw_rgba(pixels.clone(), size), format, mip).unwrap(),
             output_data: texture::Texture2d::with_format(display, RawImage2d::from_raw_rgba(pixels.clone(), size), format, mip).unwrap(),
             output_color: texture::Texture2d::with_format(display, RawImage2d::from_raw_rgba(pixels.clone(), size), format, mip).unwrap(),
+            input_light: texture::Texture2d::with_format(display, RawImage2d::from_raw_rgba(pixels.clone(), size), format, mip).unwrap(),
+            output_light: texture::Texture2d::with_format(display, RawImage2d::from_raw_rgba(pixels.clone(), size), format, mip).unwrap(),
             collision_data: texture::Texture2d::with_format(display, RawImage2d::from_raw_rgba(pixels, size), format, mip).unwrap(),
             params: Params::new(),
         }
@@ -80,6 +84,7 @@ impl Simulation {
         let img_unit_format = glium::uniforms::ImageUnitFormat::RGBA32F;
         let write = glium::uniforms::ImageUnitAccess::Write;
         let output_data_img = self.output_data.image_unit(img_unit_format).unwrap().set_access(write);
+        let output_light_img = self.output_light.image_unit(img_unit_format).unwrap().set_access(write);
         let output_color_img = self.output_color.image_unit(img_unit_format).unwrap().set_access(write);
         let collision_img = self.collision_data.image_unit(img_unit_format).unwrap().set_access(uniforms::ImageUnitAccess::ReadWrite);
         
@@ -89,6 +94,9 @@ impl Simulation {
                 output_data: output_data_img,
                 output_color: output_color_img,
                 collision_data: collision_img,
+                input_light: &self.input_light,
+                output_light: output_light_img,
+
                 moveRight: self.params.moveRight,
                 mousePos: self.params.mousePos,
                 brushSize: self.params.brushSize * self.params.mousePressed as u32,
@@ -97,5 +105,6 @@ impl Simulation {
                 simSize: (self.size.0 as i32, self.size.1 as i32),
             }, self.workgroups.0, self.workgroups.1, self.workgroups.2);
         std::mem::swap(&mut self.input_data, &mut self.output_data);
+        std::mem::swap(&mut self.input_light, &mut self.output_light);
     }
 }

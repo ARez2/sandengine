@@ -1,7 +1,7 @@
+#define NUM_MATERIALS 9
 
-
-Material[9] materials() {
-    Material allMaterials[9] = {
+Material[NUM_MATERIALS] materials() {
+    Material allMaterials[NUM_MATERIALS] = {
         EMPTY,
         SAND,
         SOLID,
