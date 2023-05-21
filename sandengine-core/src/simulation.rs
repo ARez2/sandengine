@@ -32,7 +32,7 @@ impl Params {
 
 pub struct Simulation {
     compute_shader: glium::program::ComputeShader,
-    _size: (u32, u32),
+    size: (u32, u32),
     workgroups: (u32, u32, u32),
 
     input_data: texture::Texture2d,
@@ -62,7 +62,7 @@ impl Simulation {
 
         Self {
             compute_shader: program,
-            _size: size,
+            size,
             workgroups: (((size.0 + 7) as f32 / 8.0) as u32, ((size.1 + 7) as f32 / 8.0) as u32, 1),
 
             input_data: texture::Texture2d::with_format(display, RawImage2d::from_raw_rgba(pixels.clone(), size), format, mip).unwrap(),
@@ -94,6 +94,7 @@ impl Simulation {
                 brushSize: self.params.brushSize * self.params.mousePressed as u32,
                 brushMaterial: self.params.brushMaterial,
                 time: self.params.time,
+                simSize: (self.size.0 as i32, self.size.1 as i32),
             }, self.workgroups.0, self.workgroups.1, self.workgroups.2);
         std::mem::swap(&mut self.input_data, &mut self.output_data);
     }

@@ -9,7 +9,8 @@ ivec2 movSolidStep(Cell self, bool moveRight) {
     };
 
     ivec2[2] positions = getMoveDirs(pos + DOWN, moveRight);
-    for (int p = 1; p < positions.length(); p++) {
+    int len = positions.length();
+    for (int p = 1; p < len; p++) {
         Cell target = getCell(positions[p]);
         Cell above_target = getCell(target.pos + UP);
         if (target.mat.density < ownDensity && (!shouldDoMovSolidStep(above_target) || above_target.mat.density < ownDensity || above_target.mat.density < target.mat.density)) {

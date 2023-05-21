@@ -1,10 +1,8 @@
 bool outOfBounds(vec2 pos) {
-    ivec2 image_size = textureSize(input_data, 0);
-    return pos.x >= image_size.x || pos.x < 0 || pos.y >= image_size.y || pos.y < 0;
+    return pos.x >= simSize.x || pos.x < 0 || pos.y >= simSize.y || pos.y < 0;
 }
 bool outOfBounds(ivec2 pos) {
-    ivec2 image_size = textureSize(input_data, 0);
-    return pos.x >= image_size.x || pos.x < 0 || pos.y >= image_size.y || pos.y < 0;
+    return pos.x >= simSize.x || pos.x < 0 || pos.y >= simSize.y || pos.y < 0;
 }
 
 Cell getCell(ivec2 pos) {

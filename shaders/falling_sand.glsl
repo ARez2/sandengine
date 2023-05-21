@@ -1,5 +1,5 @@
 #version 450
-layout(local_size_x = 8, local_size_y = 8, local_size_z = 1) in;
+layout(local_size_x = 16, local_size_y = 16, local_size_z = 1) in;
 
 #define SCREEN_IS_BORDER
 #define EMPTY_MAX_DISPERSION_CHECK 8
@@ -24,6 +24,7 @@ uniform vec2 mousePos;
 uniform uint brushSize;
 uniform int brushMaterial;
 uniform float time;
+uniform ivec2 simSize;
 
 layout(rgba32f) uniform image2D collision_data;
 
@@ -80,15 +81,13 @@ void update(ivec2 pos) {
 
 
 void main() {
-    ivec2 input_size = imageSize(output_color);
-
     ivec2 pos = ivec2(gl_GlobalInvocationID.xy);
-    if (pos.x >= input_size.x || pos.x < 0 || pos.y >= input_size.y || pos.y < 0) {
+    if (pos.x >= simSize.x || pos.x < 0 || pos.y >= simSize.y || pos.y < 0) {
         return;
     };
 
     // Process input
-    vec2 mousepos = mousePos * vec2(input_size);
+    vec2 mousepos = mousePos * vec2(simSize);
     vec2 diffMouse = abs(vec2(mousepos - pos));
     bool applyBrush = false;
     #ifdef USE_CIRCLE_BRUSH
@@ -107,7 +106,7 @@ void main() {
     update(pos);
 
     #ifdef DEBUG_SHOW_ORIG_POS
-    imageStore(output_color, pos, vec4(vec2(getCell(pos).origPos) / vec2(input_size), 0.0, 1.0));
+    imageStore(output_color, pos, vec4(vec2(getCell(pos).origPos) / vec2(simSize), 0.0, 1.0));
     #endif // DEBUG_SHOW_ORIG_POS
     
     #ifdef DEBUG_SHOW_MOVERIGHT
@@ -118,6 +117,6 @@ void main() {
     imageStore(output_color, pos, vec4(col, 1.0));
     #endif // DEBUG_SHOW_MOVERIGHT
 
-    vec2 p = vec2(pos) / vec2(input_size);
+    vec2 p = vec2(pos) / vec2(simSize);
     //imageStore(output_color, pos, vec4(p.x, p.y, 0.0, 1.0));
 }
