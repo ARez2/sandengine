@@ -78,7 +78,7 @@ void setCell(ivec2 pos, Cell cell) {
             avg_light /= num_lightsources;
         }
         //                                     0.1
-        light = vec4(mix(avg_light, max_light, 0.1), 1.0);
+        light = vec4(mix(avg_light, max_light, 0.25), 1.0);
         //vec2 dirToLight = normalize(offsetsToLight);
         //imageStore(output_color, pos, vec4(dirToMaxLight.x, dirToMaxLight.y, 0.0, 1.0));
     }
