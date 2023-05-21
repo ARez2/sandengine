@@ -52,17 +52,6 @@ void setCell(ivec2 pos, Cell cell) {
     if (cell.mat.emission != vec3(0.0)) {
         light = vec4(cell.mat.emission, 1.0);
     } else {
-        float falloff = 0.0;
-        if (cell.mat.type == TYPE_EMPTY || cell.mat.type == TYPE_GAS) {
-            falloff = 0.99999;
-        } else if (cell.mat.type == TYPE_SOLID) {
-            falloff = 0.99999;
-        } else if (cell.mat.type == TYPE_MOVSOLID) {
-            falloff = 0.995;
-        } else if (cell.mat.type == TYPE_LIQUID) {
-            falloff = 0.999;
-        };
-
         ivec2[8] neighs = getDiagonalNeighbours(pos, moveRight);
         vec3 avg_light = vec3(0.0);
         vec3 max_light = vec3(0.0);
@@ -76,7 +65,7 @@ void setCell(ivec2 pos, Cell cell) {
             vec3 light_data = texelFetch(input_light, neighPos, 0).rgb * float(!neighObstacle);
             if (light_data != vec3(0.0) || neigh.mat == EMPTY) {
                 num_lightsources += 1;
-                vec3 light = light_data * falloff;
+                vec3 light = light_data * 0.99999;
                 avg_light += light;
 
                 vec3 m = light * 0.96;
