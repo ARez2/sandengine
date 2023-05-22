@@ -103,21 +103,25 @@ impl Renderer {
     }
 
     pub fn start_render(&mut self) {
+        let mut target = self.display.draw();
+        target.clear_color(0.0, 0.5, 0.0, 1.0);
+        
+        self.current_frame = Some(target);
+    }
+
+    pub fn render_ui(&mut self) {
         // Create frame for the all important `&imgui::Ui`
         let ui = self.imgui_context.frame();
 
         ui.show_demo_window(&mut true);
         let gl_window = self.display.gl_window();
-        
-        let mut target = self.display.draw();
-        target.clear_color(0.0, 0.5, 0.0, 1.0);
-        
+
         // Render UI
         self.winit_platform.prepare_render(ui, gl_window.window());
         let ui_draw_data = self.imgui_context.render();
-        self.ui_renderer.render(&mut target, ui_draw_data).expect("Could not render UI.");
-        
-        self.current_frame = Some(target);
+        if let Some(target) = &mut self.current_frame {
+            self.ui_renderer.render(target, ui_draw_data).expect("Could not render UI.");
+        }
     }
 
 

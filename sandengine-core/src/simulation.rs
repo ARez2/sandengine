@@ -60,19 +60,19 @@ impl Simulation {
         
         let format = texture::UncompressedFloatFormat::F32F32F32F32;
         let mip = texture::MipmapsOption::NoMipmap;
-        let pixels : Vec<f32> = vec![0.0; (size.0 * size.1 * 4) as usize];
+        let data : Vec<f32> = vec![0.0; (size.0 * size.1 * 4) as usize];
 
         Self {
             compute_shader: program,
             size,
             workgroups: (((size.0 + 7) as f32 / 8.0) as u32, ((size.1 + 7) as f32 / 8.0) as u32, 1),
 
-            input_data: texture::Texture2d::with_format(display, RawImage2d::from_raw_rgba(pixels.clone(), size), format, mip).unwrap(),
-            output_data: texture::Texture2d::with_format(display, RawImage2d::from_raw_rgba(pixels.clone(), size), format, mip).unwrap(),
-            output_color: texture::Texture2d::with_format(display, RawImage2d::from_raw_rgba(pixels.clone(), size), format, mip).unwrap(),
-            input_light: texture::Texture2d::with_format(display, RawImage2d::from_raw_rgba(pixels.clone(), size), format, mip).unwrap(),
-            output_light: texture::Texture2d::with_format(display, RawImage2d::from_raw_rgba(pixels.clone(), size), format, mip).unwrap(),
-            collision_data: texture::Texture2d::with_format(display, RawImage2d::from_raw_rgba(pixels, size), format, mip).unwrap(),
+            input_data: texture::Texture2d::with_format(display, RawImage2d::from_raw_rgba(data.clone(), size), format, mip).unwrap(),
+            output_data: texture::Texture2d::with_format(display, RawImage2d::from_raw_rgba(data.clone(), size), format, mip).unwrap(),
+            output_color: texture::Texture2d::with_format(display, RawImage2d::from_raw_rgba(data.clone(), size), format, mip).unwrap(),
+            input_light: texture::Texture2d::with_format(display, RawImage2d::from_raw_rgba(data.clone(), size), format, mip).unwrap(),
+            output_light: texture::Texture2d::with_format(display, RawImage2d::from_raw_rgba(data.clone(), size), format, mip).unwrap(),
+            collision_data: texture::Texture2d::with_format(display, RawImage2d::from_raw_rgba(data, size), format, mip).unwrap(),
             params: Params::new(),
         }
     }

@@ -3,7 +3,7 @@ extern crate glium;
 
 use std::time::Instant;
 
-use glium::glutin::dpi::PhysicalPosition;
+use glium::glutin::dpi::{PhysicalPosition, PhysicalSize};
 use glium::glutin::event::{VirtualKeyCode};
 use glium::{
     glutin::{self, event::WindowEvent, event::Event},
@@ -17,6 +17,8 @@ use renderer::{Renderer, TextureDrawMode};
 // One texture for collision:
 // each pixel holds a normalized coordinate of a collision point. If the pixel value is vec4(0.0) this means nothing/ gap
 // once the next line of coordinates starts until the next vec4(0.0) means one collision island
+
+// TODO: make a texture for input. All pixels on that will be setCell'ed and then cleared.
 
 pub fn run() {
     let size = (640, 480);
@@ -47,6 +49,7 @@ pub fn run() {
             Event::RedrawRequested(_) => {
                 renderer.start_render();
                 renderer.render_texture(&sim.output_color, PhysicalPosition::new(0, 0), TextureDrawMode::Stretch);
+                renderer.render_ui();
                 renderer.finish_render();
             },
             Event::WindowEvent { event: WindowEvent::CloseRequested, .. } => {
