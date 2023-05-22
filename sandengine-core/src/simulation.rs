@@ -1,4 +1,4 @@
-use glium::{texture::{self, RawImage2d}, uniforms};
+use glium::{texture::{self, RawImage2d}, uniforms, Surface};
 use rand::Rng;
 
 
@@ -40,7 +40,7 @@ pub struct Simulation {
     pub output_color: texture::Texture2d,
     input_light: texture::Texture2d,
     pub output_light: texture::Texture2d,
-    collision_data: texture::Texture2d,
+    pub collision_data: texture::Texture2d,
     pub params: Params,
 }
 impl Simulation {
@@ -61,6 +61,9 @@ impl Simulation {
         let format = texture::UncompressedFloatFormat::F32F32F32F32;
         let mip = texture::MipmapsOption::NoMipmap;
         let data : Vec<f32> = vec![0.0; (size.0 * size.1 * 4) as usize];
+        let colscale = 8;
+        let colsize = (size.0 / colscale, size.1 / colscale);
+        let coldata : Vec<f32> = vec![0.0; (colsize.0 * colsize.1 * 4) as usize];
 
         Self {
             compute_shader: program,
@@ -72,12 +75,14 @@ impl Simulation {
             output_color: texture::Texture2d::with_format(display, RawImage2d::from_raw_rgba(data.clone(), size), format, mip).unwrap(),
             input_light: texture::Texture2d::with_format(display, RawImage2d::from_raw_rgba(data.clone(), size), format, mip).unwrap(),
             output_light: texture::Texture2d::with_format(display, RawImage2d::from_raw_rgba(data.clone(), size), format, mip).unwrap(),
-            collision_data: texture::Texture2d::with_format(display, RawImage2d::from_raw_rgba(data, size), format, mip).unwrap(),
+            collision_data: texture::Texture2d::with_format(display, RawImage2d::from_raw_rgba(coldata, colsize), format, mip).unwrap(),
             params: Params::new(),
         }
     }
 
     pub fn run(&mut self) {
+        self.collision_data.as_surface().clear_color(0.0, 0.0, 0.0, 1.0);
+
         let mut rng = rand::thread_rng();
         self.params.moveRight = rng.gen_bool(0.5);
         

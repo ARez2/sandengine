@@ -2,7 +2,6 @@
 
 pub fn run() {
     build_shaders();
-    return;
     sandengine_core::run();
 }
 

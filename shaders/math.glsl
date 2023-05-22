@@ -89,7 +89,17 @@ ivec2[4] getOnlyDiagonalNeighbours(ivec2 pos) {
     return neighs;
 }
 
-ivec2[8] getDiagonalNeighbours(ivec2 pos, bool moveRight) {
+
+#define NEIGH_IDX_UP 0
+#define NEIGH_IDX_UPLEFT 1
+#define NEIGH_IDX_UPRIGHT 2
+#define NEIGH_IDX_LEFT 3
+#define NEIGH_IDX_RIGHT 4
+#define NEIGH_IDX_DOWN 5
+#define NEIGH_IDX_DOWNLEFT 6
+#define NEIGH_IDX_DOWNRIGHT 7
+
+ivec2[8] getDiagonalNeighbours(ivec2 pos) {
     ivec2 neighs[8] = {
         pos + UP,
         pos + UPLEFT,
@@ -100,15 +110,5 @@ ivec2[8] getDiagonalNeighbours(ivec2 pos, bool moveRight) {
         pos + DOWNLEFT,
         pos + DOWNRIGHT,
     };
-    if (moveRight) {
-        neighs[0] = pos + UP;
-        neighs[1] = pos + UPRIGHT;
-        neighs[2] = pos + UPLEFT;
-        neighs[3] = pos + RIGHT;
-        neighs[4] = pos + LEFT;
-        neighs[5] = pos + DOWN;
-        neighs[6] = pos + DOWNRIGHT;
-        neighs[7] = pos + DOWNLEFT;
-    }
     return neighs;
 }

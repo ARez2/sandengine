@@ -1,3 +1,6 @@
+
+
+
 bool outOfBounds(vec2 pos) {
     return pos.x >= simSize.x || pos.x < 0 || pos.y >= simSize.y || pos.y < 0;
 }
@@ -26,12 +29,13 @@ Cell getCell(ivec2 pos, ivec2 offset) {
 
 
 bool isCollider(Cell cell) {
-    return cell.mat != EMPTY;// && !isGas(cell) && !isLiquid(cell)
+    return cell.mat != EMPTY && cell.mat != NULL && cell.mat != WALL;// && !isGas(cell) && !isLiquid(cell)
 }
 
 bool isLightObstacle(Cell cell) {
     return cell.mat.emission == vec3(0.0) && (isSolid(cell) || isMovSolid(cell));
 }
+
 
 void setCell(ivec2 pos, Cell cell) {
     vec4 color = cell.mat.color;
@@ -47,20 +51,32 @@ void setCell(ivec2 pos, Cell cell) {
     //imageStore(output_effects, pos, vec4(cell.mat.emission, 1.0));
     ivec4 data = ivec4(cell.origPos.x, cell.origPos.y, cell.mat.id, 1);
     imageStore(output_data, pos, data);
+
+    ivec2[8] neighs = getDiagonalNeighbours(pos);
+    Cell[8] neighCells;
+    for (int n = 0; n < neighs.length(); n++) {
+        neighCells[n] = getCell(neighs[n]);
+    }
+
+
+    int numColliders = int(isCollider(neighCells[3])) + int(isCollider(neighCells[4])) + int(isCollider(neighCells[3])) + int(isCollider(neighCells[5]));
+    if (isCollider(cell) && numColliders < 4) {
+        imageStore(collision_data, pos / 8, max(imageLoad(collision_data, pos / 8), vec4(vec3(1.0), 0.1)));
+    }
+    
     
     vec4 light;
     if (cell.mat.emission != vec3(0.0)) {
         light = vec4(cell.mat.emission, 1.0);
     } else {
-        ivec2[8] neighs = getDiagonalNeighbours(pos, moveRight);
         vec3 avg_light = vec3(0.0);
         vec3 max_light = vec3(0.0);
         vec2 offsetsToLight = vec2(0.0);
         
         int num_lightsources = 0;
         for (int n = 0; n < neighs.length(); n++) {
-            ivec2 neighPos = neighs[n];
-            Cell neigh = getCell(neighPos);
+            Cell neigh = neighCells[n];
+            ivec2 neighPos = neigh.pos;
             bool neighObstacle = isLightObstacle(neigh);
             vec3 light_data = texelFetch(input_light, neighPos, 0).rgb * float(!neighObstacle);
             if (light_data != vec3(0.0) || neigh.mat == EMPTY) {
