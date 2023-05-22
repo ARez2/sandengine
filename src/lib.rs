@@ -2,6 +2,7 @@
 
 pub fn run() {
     build_shaders();
+    return;
     sandengine_core::run();
 }
 
@@ -24,7 +25,7 @@ fn build_shaders() {
             had_includes = true;
             let incl_path = contents
                     .split_at(start_idx + searchstr.len()).1
-                    .split("\"\n").next()
+                    .split("\"").next()
                     .unwrap();
             println!("{}: Include path: {}", path.clone().display(), incl_path);
             let incl_src = std::fs::read_to_string(path.parent().unwrap().join(incl_path));
@@ -41,7 +42,7 @@ fn build_shaders() {
                 }
             }
 
-            start_idx = contents.find("#include ").unwrap_or(0);
+            start_idx = contents.find(searchstr).unwrap_or(0);
         }
 
         if had_includes {
