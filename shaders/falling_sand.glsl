@@ -79,6 +79,14 @@ void update(ivec2 pos) {
     }
 }
 
+// IDEA: Cache neighbours beforehand, so that less calls to getCell are needed
+// Problem: While it would work for when the current pixel is a Cell that moves,
+//          it does not work for empties, since when the current Cell is empty,
+//          it still calls for ex. movSolidStep, but if movSolidStep would work
+//          with the precomputed neighbour array, that would not work, since that
+//          precomputed neighbour array would be the neighbours of the current Cell
+//          which would be the empty Cell in that case.
+
 
 void main() {
     ivec2 pos = ivec2(gl_GlobalInvocationID.xy);
