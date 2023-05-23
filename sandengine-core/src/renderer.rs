@@ -132,15 +132,20 @@ impl Renderer {
     }
 
 
-    pub fn render_texture(&self, texture: &glium::Texture2d, pos: glium::glutin::dpi::PhysicalPosition<u32>, draw_mode: TextureDrawMode) {
+    pub fn render_texture(&self, texture: &glium::Texture2d, pos: glium::glutin::dpi::PhysicalPosition<u32>, draw_mode: TextureDrawMode, flip: bool) {
         if let Some(target) = &self.current_frame {
             let source_rect = Rect{left: 0, bottom: 0, width: texture.width(), height: texture.height()};
             let dims = target.get_dimensions();
+
+            let (bottom, height_multi) = match flip {
+                true => (dims.1 - pos.y, -1),
+                false => (pos.y, 1),
+            };
             
             let target_rect = match draw_mode {
-                TextureDrawMode::Stretch => BlitTarget{left: pos.x, bottom: dims.1 - pos.y, width: dims.0 as i32, height: -(dims.1 as i32)},
-                TextureDrawMode::KeepScale => BlitTarget{left: pos.x, bottom: dims.1 - pos.y, width: texture.width() as i32, height: -(texture.height() as i32)},
-                TextureDrawMode::Scale(new_size) => BlitTarget{left: pos.x, bottom: dims.1 - pos.y, width: new_size.width as i32, height: -(new_size.height as i32)},
+                TextureDrawMode::Stretch => BlitTarget{left: pos.x, bottom, width: dims.0 as i32, height: height_multi*(dims.1 as i32)},
+                TextureDrawMode::KeepScale => BlitTarget{left: pos.x, bottom, width: texture.width() as i32, height: height_multi*(texture.height() as i32)},
+                TextureDrawMode::Scale(new_size) => BlitTarget{left: pos.x, bottom, width: new_size.width as i32, height: height_multi*(new_size.height as i32)},
             };
             
             target.blit_buffers_from_simple_framebuffer(
