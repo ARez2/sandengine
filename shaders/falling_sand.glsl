@@ -62,7 +62,7 @@ void update(ivec2 pos) {
             pullCell(res, pos);
         };
     } else if (isLiquid(self)) {
-        ivec2 res = liquidStep(self, moveRight);
+        ivec2 res = liquidStep(self, moveRight, true);
         if (res != pos) {
             pullCell(res, pos);
         } else {

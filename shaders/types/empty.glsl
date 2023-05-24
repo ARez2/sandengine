@@ -71,11 +71,11 @@ void emptyStep(Cell self, bool moveRight) {
         ivec2 second_checkpos = pos + positions[1] * disp;
         Cell first = getCell(first_checkpos);
         Cell second = getCell(second_checkpos);
-        if (isLiquid(first) && liquidStep(first, moveRight) == pos) {
+        if (shouldDoLiquidStep(first) && liquidStep(first, moveRight, false) == pos) {
             pullCell(first_checkpos, pos);
             return;
         }
-        if (isLiquid(second) && liquidStep(second, moveRight) == pos) {
+        if (shouldDoLiquidStep(second) && liquidStep(second, moveRight, false) == pos) {
             pullCell(second_checkpos, pos);
             return;
         };
@@ -90,7 +90,7 @@ void emptyStep(Cell self, bool moveRight) {
     for (int p = 0; p < positions2.length(); p++) {
         ivec2 position = positions2[p];
         Cell target = getCell(position);
-        if (shouldDoLiquidStep(target) && liquidStep(target, moveRight) == pos) {
+        if (shouldDoLiquidStep(target) && liquidStep(target, moveRight, false) == pos) {
             pullCell(position, pos);
             return;
         }

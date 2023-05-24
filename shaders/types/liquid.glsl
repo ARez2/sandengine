@@ -9,7 +9,7 @@ bool canLiquidMoveHere(ivec2 pos, bool moveRight, bool includeHorizontal) {
     };
     for (int n = 0; n < neighs.length(); n++) {
         Cell neigh = getCell(neighs[n]);
-        if ((shouldDoMovSolidStep(neigh) && movSolidStep(neigh, moveRight) == pos) || isLiquid(neigh)) {
+        if ((shouldDoMovSolidStep(neigh) && movSolidStep(neigh, moveRight, false) == pos) || isLiquid(neigh)) {
             return false;
         };
     };
@@ -51,13 +51,14 @@ bool liquidMoveCondition(Cell liquid, ivec2 dir, int checkLength, bool moveRight
         }
     }
 
+    //return target.mat.density < liquid.mat.density;
     return canLiquidMoveHere(checkpos, moveRight, false);
 }
 
 
 // TODO: Apply liquid horizontal step between 2 liquids
 
-ivec2 liquidStep(Cell self, bool moveRight) {
+ivec2 liquidStep(Cell self, bool moveRight, bool isSelf) {
     float ownDensity = self.mat.density;
     ivec2 pos = self.pos;
 
@@ -70,13 +71,12 @@ ivec2 liquidStep(Cell self, bool moveRight) {
     for (int p = 0; p < positions1.length(); p++) {
         ivec2 position = positions1[p];
         Cell target = getCell(position);
-        if (shouldDoMovSolidStep(target) && movSolidStep(target, moveRight) == pos) {
-            //pullCell(position, pos);
+        if (shouldDoMovSolidStep(target) && movSolidStep(target, moveRight, false) == pos) {
             return position;
         }
     }
 
-    ivec2 movSolidRes = movSolidStep(self, moveRight);
+    ivec2 movSolidRes = movSolidStep(self, moveRight, isSelf);
     if (movSolidRes != pos) {
         return movSolidRes;
     };

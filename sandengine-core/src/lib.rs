@@ -30,7 +30,8 @@ pub fn run() {
 
     let mut last_render = Instant::now();
     event_loop.run(move |event, _, control_flow| {
-        //let next_frame_time = std::time::Instant::now() + std::time::Duration::from_nanos(16_666_667);
+        // nanos: 16_666_667
+        //let next_frame_time = std::time::Instant::now() + std::time::Duration::from_secs(1);
         //*control_flow = glutin::event_loop::ControlFlow::WaitUntil(next_frame_time);
         *control_flow = glutin::event_loop::ControlFlow::Poll;
         let frame_delta = last_render.elapsed();
