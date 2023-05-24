@@ -32,6 +32,7 @@ layout(binding = 4) uniform sampler2D input_light;
 layout(rgba32f, binding = 5) uniform writeonly image2D output_light;
 layout(rgba32f, binding = 6) uniform writeonly image2D output_effects;
 
+Cell[8] neighbours;
 
 #include "operations.glsl"
 
@@ -54,7 +55,7 @@ void update(ivec2 pos) {
     if (self.mat == EMPTY) {
         emptyStep(self, moveRight);
     } else if (isMovSolid(self)) {
-        ivec2 res = movSolidStep(self, moveRight);
+        ivec2 res = movSolidStep(self, moveRight, true);
         if (res == pos) {
             setCell(pos, self);
         } else {
@@ -79,20 +80,16 @@ void update(ivec2 pos) {
     }
 }
 
-// IDEA: Cache neighbours beforehand, so that less calls to getCell are needed
-// Problem: While it would work for when the current pixel is a Cell that moves,
-//          it does not work for empties, since when the current Cell is empty,
-//          it still calls for ex. movSolidStep, but if movSolidStep would work
-//          with the precomputed neighbour array, that would not work, since that
-//          precomputed neighbour array would be the neighbours of the current Cell
-//          which would be the empty Cell in that case.
-
-
 void main() {
     ivec2 pos = ivec2(gl_GlobalInvocationID.xy);
     if (pos.x >= simSize.x || pos.x < 0 || pos.y >= simSize.y || pos.y < 0) {
         return;
     };
+
+    ivec2[8] neighPositions = getDiagonalNeighbours(pos);
+    for (int n = 0; n < neighbours.length(); n++) {
+        neighbours[n] = getCell(neighPositions[n]);
+    }
 
     // Process input
     vec2 mousepos = mousePos * vec2(simSize);
