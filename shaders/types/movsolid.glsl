@@ -4,7 +4,6 @@ ivec2 movSolidStep(Cell self, bool moveRight, bool isSelf) {
     float ownDensity = self.mat.density;
     ivec2 pos = self.pos;
 
-    // TODO: Check if downright/ -left is Liquid and wants to move horizontally
     Cell below;
     Cell left;
     Cell right;

@@ -46,7 +46,7 @@ bool tryPullGas(Cell self, bool moveRight) {
 
     for (int p = 0; p < positions.length(); p++) {
         Cell c = getCell(positions[p]);
-        if (shouldDoGasStep(c) && gasStep(c, moveRight) == self.pos) {
+        if (shouldDoGasStep(c) && gasStep(c, moveRight, false) == self.pos) {
             pullCell(positions[p], self.pos);
             return true;
         }

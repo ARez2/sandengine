@@ -71,7 +71,7 @@ void update(ivec2 pos) {
     } else if (isSolid(self)) {
         setCell(pos, self);
     } else if (isGas(self)) {
-        ivec2 res = gasStep(self, moveRight);
+        ivec2 res = gasStep(self, moveRight, true);
         if (res == pos) {
             setCell(pos, self);
         } else {
