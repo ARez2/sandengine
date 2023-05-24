@@ -97,9 +97,9 @@ void main() {
     bool applyBrush = false;
     #ifdef USE_CIRCLE_BRUSH
     float mouseDist = sqrt(pow(diffMouse.x, 2) + pow(diffMouse.y, 2));
-    applyBrush = brushSize > 0 && mouseDist <= brushSize;
+    applyBrush = brushSize > 0 && mouseDist <= float(brushSize) / 2.0;
     #else
-    applyBrush = brushSize > 0 && diffMouse.x <= brushSize && diffMouse.y <= brushSize;
+    applyBrush = brushSize > 0 && diffMouse.x <= brushSize && diffMouse.y <= float(brushSize) / 2.0;
     #endif // USE_CIRCLE_BRUSH
     
     if (applyBrush) {
