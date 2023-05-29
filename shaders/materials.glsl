@@ -1,5 +1,5 @@
 struct Material {
-    int id;
+    uint id;
     vec4 color;
     float density;
     int dispersion;

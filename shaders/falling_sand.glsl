@@ -16,6 +16,7 @@ layout(local_size_x = 16, local_size_y = 16, local_size_z = 1) in;
 
 uniform sampler2D input_data;
 layout(rgba32f) uniform writeonly image2D output_data;
+layout(r16ui) uniform image2D matID_data;
 layout(rgba32f) uniform writeonly image2D output_color;
 // uniform Params {
 // } params 
@@ -42,6 +43,11 @@ Cell[8] neighbours;
 #include "types/empty.glsl"
 
 
+// TODO: Update the step functions to recalculate movement, if the ID thats returned
+//       from setCell != EMPTY.id aka. if there is already a cell at that position.
+
+
+
 // Returns the next position of the cell
 void update(ivec2 pos) {
     Cell self = getCell(pos);
@@ -53,20 +59,24 @@ void update(ivec2 pos) {
     bool moveRight = moveRight;
 
     if (self.mat == EMPTY) {
-        emptyStep(self, moveRight);
+        //emptyStep(self, moveRight);
+        //imageStore(output_color, pos, EMPTY.color);
+        return;
     } else if (isMovSolid(self)) {
         ivec2 res = movSolidStep(self, moveRight, true);
         if (res == pos) {
             setCell(pos, self);
         } else {
+            //Cell result = getCell(res);
             pullCell(res, pos);
+            setCell(res, self);
         };
     } else if (isLiquid(self)) {
         ivec2 res = liquidStep(self, moveRight, true);
-        if (res != pos) {
-            pullCell(res, pos);
-        } else {
+        if (res == pos) {
             setCell(pos, self);
+        } else {
+            pullCell(res, pos);
         };
     } else if (isSolid(self)) {
         setCell(pos, self);
@@ -80,6 +90,15 @@ void update(ivec2 pos) {
     }
 }
 
+
+// IDEA: Eliminate concept of empty cell logic all together
+//       Only need empty material as placeholder, but when a
+//       cell detects, that it would move into an empty cell,
+//       it directly calles setCell on that position and sets
+//       its own position to be empty.
+
+
+
 void main() {
     ivec2 pos = ivec2(gl_GlobalInvocationID.xy);
     if (pos.x >= simSize.x || pos.x < 0 || pos.y >= simSize.y || pos.y < 0) {
@@ -89,6 +108,10 @@ void main() {
     ivec2[8] neighPositions = getDiagonalNeighbours(pos);
     for (int n = 0; n < neighbours.length(); n++) {
         neighbours[n] = getCell(neighPositions[n]);
+    }
+
+    if (time < 0.1) {
+        setCell(pos, EMPTY);
     }
 
     // Process input
@@ -102,13 +125,15 @@ void main() {
     applyBrush = brushSize > 0 && diffMouse.x <= brushSize && diffMouse.y <= float(brushSize) / 2.0;
     #endif // USE_CIRCLE_BRUSH
     
+    
+
+    update(pos);
+
     if (applyBrush) {
         setCell(pos, getMaterialFromID(brushMaterial));
         //imageStore(output_light, pos, vec4(getMaterialFromID(brushMaterial).emission, 1.0));
         return;
     };
-
-    update(pos);
 
     #ifdef DEBUG_SHOW_ORIG_POS
     imageStore(output_color, pos, vec4(vec2(getCell(pos).origPos) / vec2(simSize), 0.0, 1.0));

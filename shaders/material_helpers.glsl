@@ -15,7 +15,7 @@ Material[NUM_MATERIALS] materials() {
     return allMaterials;
 }
 
-Material getMaterialFromID(int id) {
+Material getMaterialFromID(uint id) {
     for (int i = 0; i < materials().length(); i++) {
         if (id == materials()[i].id) {
             return materials()[i];

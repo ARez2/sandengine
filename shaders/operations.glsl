@@ -18,7 +18,7 @@ Cell getCell(ivec2 pos) {
     ivec4 data = ivec4(texelFetch(input_data, pos, 0));
     // data: orig_pos.x  orig_pos.y  ___id___  00000000
     ivec2 orig_pos = ivec2(data.r, data.g);
-    int matID = int(data.b);
+    uint matID = int(data.b);
 
     return Cell(getMaterialFromID(matID), orig_pos, pos);
 }
@@ -37,9 +37,14 @@ bool isLightObstacle(Cell cell) {
 }
 
 
-void setCell(ivec2 pos, Cell cell) {
-    vec4 color = cell.mat.color;
+uint setCell(ivec2 pos, Cell cell) {
     
+    uint resID = imageAtomicCompSwap(matID_data, pos, EMPTY.id, cell.mat.id);
+    if (resID != EMPTY.id) {
+        return resID;
+    }
+
+    vec4 color = cell.mat.color;
     // TODO: Modify noise based on material
     if (cell.mat != EMPTY) {
         float rand = noise(vec2(cell.origPos), 3, 2.0, 0.1) * 0.25;
@@ -47,8 +52,7 @@ void setCell(ivec2 pos, Cell cell) {
         color.g = clamp(color.g - rand, 0.0, 1.0);
         color.b = clamp(color.b - rand, 0.0, 1.0);
     };
-    
-    //imageStore(output_effects, pos, vec4(cell.mat.emission, 1.0));
+
     ivec4 data = ivec4(cell.origPos.x, cell.origPos.y, cell.mat.id, 1);
     imageStore(output_data, pos, data);
 
@@ -105,6 +109,8 @@ void setCell(ivec2 pos, Cell cell) {
     } else {
         imageStore(output_color, pos, color * min(light + ambientLight, vec4(1.0)));
     }
+
+    return resID;
 }
 void setCell(ivec2 pos, Material mat) {
     setCell(pos, Cell(mat, pos, pos));
