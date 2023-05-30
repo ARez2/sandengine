@@ -49,6 +49,7 @@ impl Simulation {
         let current_dir = std::env::current_dir().unwrap();
         let shader_src = std::fs::read_to_string(current_dir
                 .join("shaders")
+                .join("compute")
                 .join("gen")
                 .join("falling_sand.glsl")).unwrap();
         let program = glium::program::ComputeShader::from_source(display, shader_src.as_str());

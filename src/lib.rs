@@ -1,13 +1,16 @@
+use std::str::FromStr;
+
 
 
 pub fn run() {
-    build_shaders();
+    build_compute_shaders();
     sandengine_core::run();
 }
 
 
-fn build_shaders() {
-    std::fs::read_dir("shaders/").unwrap().filter(|f| {
+fn build_compute_shaders() {
+    let shaderpath = std::path::PathBuf::from_str("shaders/compute").unwrap();
+    std::fs::read_dir(shaderpath.clone()).unwrap().filter(|f| {
         if let Ok(file) = f {
             return file.path().is_file() && file.path().extension().unwrap() == "glsl";
         } else {
@@ -45,7 +48,7 @@ fn build_shaders() {
         }
 
         if had_includes {
-            std::fs::write(format!("shaders/gen/{}", path.file_name().unwrap().to_str().unwrap()), contents).unwrap();
+            std::fs::write(shaderpath.join("gen").join(path.file_name().unwrap().to_str().unwrap()), contents).unwrap();
         }
     });
 }
