@@ -37,7 +37,7 @@ bool isLightObstacle(Cell cell) {
 }
 
 
-void setCell(ivec2 pos, Cell cell) {
+void setCell(ivec2 pos, Cell cell, bool setCollision) {
     vec4 color = cell.mat.color;
     
     // TODO: Modify noise based on material
@@ -58,9 +58,8 @@ void setCell(ivec2 pos, Cell cell) {
         neighCells[n] = getCell(neighs[n]);
     }
 
-
-    int numColliders = int(isCollider(neighCells[3])) + int(isCollider(neighCells[4])) + int(isCollider(neighCells[3])) + int(isCollider(neighCells[5]));
-    if (isCollider(cell) && numColliders < 4) {
+    int numColliders = int(isCollider(neighCells[3])) + int(isCollider(neighCells[4])) + int(isCollider(neighCells[0])) + int(isCollider(neighCells[5]));
+    if (setCollision && isCollider(cell) && numColliders < 4) {
         imageStore(collision_data, pos / 8, max(imageLoad(collision_data, pos / 8), vec4(vec3(1.0), 0.1)));
     }
     
@@ -106,8 +105,8 @@ void setCell(ivec2 pos, Cell cell) {
         imageStore(output_color, pos, color * min(light + ambientLight, vec4(1.0)));
     }
 }
-void setCell(ivec2 pos, Material mat) {
-    setCell(pos, Cell(mat, pos, pos));
+void setCell(ivec2 pos, Material mat, bool setCollision) {
+    setCell(pos, Cell(mat, pos, pos), setCollision);
 }
 
 
@@ -115,8 +114,8 @@ void setCell(ivec2 pos, Material mat) {
 void pullCell(ivec2 from, ivec2 to) {
     Cell other = getCell(from);
     if (isSolid(other)) {
-        setCell(to, EMPTY);
+        setCell(to, EMPTY, false);
     } else {
-        setCell(to, other);
+        setCell(to, other, false);
     }
 }

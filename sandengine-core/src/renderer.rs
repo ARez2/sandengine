@@ -1,5 +1,17 @@
-use glium::{Surface, uniforms, BlitTarget, Rect, Frame, glutin::{window::Icon, event_loop::{EventLoop}, self, dpi::PhysicalSize, event::Event}};
+use glium::{Surface, uniforms, BlitTarget, Rect, Frame, glutin::{window::Icon, event_loop::{EventLoop}, self, dpi::PhysicalSize, event::Event}, Program};
 use imgui_winit_support::WinitPlatform;
+use nphysics2d::nalgebra::Point2;
+use rayon::prelude::*;
+
+
+#[derive(Copy, Clone)]
+struct Vertex {
+    position: [f32; 2],
+}
+
+implement_vertex!(Vertex, position);
+
+
 
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -12,6 +24,7 @@ pub enum TextureDrawMode {
 
 
 pub struct Renderer {
+    draw_program: Program,
     pub display: glium::Display,
     winit_platform: WinitPlatform,
     imgui_context: imgui::Context,
@@ -45,7 +58,13 @@ impl Renderer {
         let (winit_platform, mut imgui_context) = Renderer::imgui_init(&display);
         let ui_renderer = imgui_glium_renderer::Renderer::init(&mut imgui_context, &display).expect("Failed to initialize UI renderer");
 
+        
+        let vertex_shader_src = include_str!("../../shaders/vertex.glsl");
+        let fragment_shader_src = include_str!("../../shaders/fragment.glsl");
+        let draw_program = glium::Program::from_source(&display, vertex_shader_src, fragment_shader_src, None).unwrap();
+
         Renderer {
+            draw_program,
             display,
             winit_platform,
             imgui_context,
@@ -102,12 +121,14 @@ impl Renderer {
         self.imgui_context.io().want_capture_mouse || self.imgui_context.io().want_capture_keyboard
     }
 
+
     pub fn start_render(&mut self) {
         let mut target = self.display.draw();
         target.clear_color(0.0, 0.5, 0.0, 1.0);
         
         self.current_frame = Some(target);
     }
+
 
     pub fn render_ui(&mut self) {
         // Create frame for the all important `&imgui::Ui`
@@ -125,18 +146,11 @@ impl Renderer {
     }
 
 
-    pub fn finish_render(&mut self) {
-        if let Some(f) = self.current_frame.take() {
-            f.finish().unwrap();
-        }
-    }
-
-
     pub fn render_texture(&self, texture: &glium::Texture2d, pos: glium::glutin::dpi::PhysicalPosition<u32>, draw_mode: TextureDrawMode, flip: bool) {
         if let Some(target) = &self.current_frame {
             let source_rect = Rect{left: 0, bottom: 0, width: texture.width(), height: texture.height()};
             let dims = target.get_dimensions();
-
+            
             let (bottom, height_multi) = match flip {
                 true => (dims.1 - pos.y, -1),
                 false => (pos.y, 1),
@@ -156,7 +170,33 @@ impl Renderer {
                 glium::BlitMask::color()
             );
         }
+    }
 
+    
+    pub fn draw_primitive(&mut self, points: &Vec<Point2<f32>>, scale: f32, mode: glium::index::PrimitiveType) {
+        if let Some(target) = &mut self.current_frame {
+            let dims = target.get_dimensions();
+            let shape: Vec<Vertex> = points.par_iter().map(|pt| {
+                Vertex { position: [pt.x, pt.y] }
+            }).collect();
+            let vertex_buffer = glium::VertexBuffer::new(&self.display, &shape).unwrap();
+            let indices = glium::index::NoIndices(mode);
+            target.draw(
+                &vertex_buffer,
+                &indices,
+                &self.draw_program,
+                &uniform! {
+                    texSize: (dims.0 as f32 / scale, dims.1 as f32 / scale)
+                },
+                &Default::default()).expect("Cannot draw to the target.");
+        }
+    }
+
+
+    pub fn finish_render(&mut self) {
+        if let Some(f) = self.current_frame.take() {
+            f.finish().unwrap();
+        }
     }
 }
 

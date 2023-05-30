@@ -47,7 +47,7 @@ void update(ivec2 pos) {
     Cell self = getCell(pos);
     
     if (self.mat == NULL) {
-        setCell(pos, self);
+        setCell(pos, self, false);
         return;
     };
     bool moveRight = moveRight;
@@ -57,23 +57,23 @@ void update(ivec2 pos) {
     } else if (isMovSolid(self)) {
         ivec2 res = movSolidStep(self, moveRight, true);
         if (res == pos) {
-            setCell(pos, self);
+            setCell(pos, self, true);
         } else {
             pullCell(res, pos);
         };
     } else if (isLiquid(self)) {
         ivec2 res = liquidStep(self, moveRight, true);
-        if (res != pos) {
-            pullCell(res, pos);
+        if (res == pos) {
+            setCell(pos, self, true);
         } else {
-            setCell(pos, self);
+            pullCell(res, pos);
         };
     } else if (isSolid(self)) {
-        setCell(pos, self);
+        setCell(pos, self, true);
     } else if (isGas(self)) {
         ivec2 res = gasStep(self, moveRight, true);
         if (res == pos) {
-            setCell(pos, self);
+            setCell(pos, self, true);
         } else {
             pullCell(res, pos);
         };
@@ -103,7 +103,7 @@ void main() {
     #endif // USE_CIRCLE_BRUSH
     
     if (applyBrush) {
-        setCell(pos, getMaterialFromID(brushMaterial));
+        setCell(pos, getMaterialFromID(brushMaterial), false);
         //imageStore(output_light, pos, vec4(getMaterialFromID(brushMaterial).emission, 1.0));
         return;
     };

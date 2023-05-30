@@ -40,6 +40,7 @@ pub struct Simulation {
     pub output_color: texture::Texture2d,
     input_light: texture::Texture2d,
     pub output_light: texture::Texture2d,
+    pub collision_tex_scale: u32,
     pub collision_data: texture::Texture2d,
     pub params: Params,
 }
@@ -62,8 +63,8 @@ impl Simulation {
         let format = texture::UncompressedFloatFormat::F32F32F32F32;
         let mip = texture::MipmapsOption::NoMipmap;
         let data : Vec<f32> = vec![0.0; (size.0 * size.1 * 4) as usize];
-        let colscale = 8;
-        let colsize = (size.0 / colscale, size.1 / colscale);
+        let collision_tex_scale = 8;
+        let colsize = (size.0 / collision_tex_scale, size.1 / collision_tex_scale);
         let coldata : Vec<f32> = vec![0.0; (colsize.0 * colsize.1 * 4) as usize];
 
         Self {
@@ -76,6 +77,7 @@ impl Simulation {
             output_color: texture::Texture2d::with_format(display, RawImage2d::from_raw_rgba(data.clone(), size), format, mip).unwrap(),
             input_light: texture::Texture2d::with_format(display, RawImage2d::from_raw_rgba(data.clone(), size), format, mip).unwrap(),
             output_light: texture::Texture2d::with_format(display, RawImage2d::from_raw_rgba(data.clone(), size), format, mip).unwrap(),
+            collision_tex_scale,
             collision_data: texture::Texture2d::with_format(display, RawImage2d::from_raw_rgba(coldata, colsize), format, mip).unwrap(),
             params: Params::new(),
         }

@@ -318,7 +318,7 @@ bool isLightObstacle(Cell cell) {
 }
 
 
-void setCell(ivec2 pos, Cell cell) {
+void setCell(ivec2 pos, Cell cell, bool setCollision) {
     vec4 color = cell.mat.color;
     
     // TODO: Modify noise based on material
@@ -339,9 +339,8 @@ void setCell(ivec2 pos, Cell cell) {
         neighCells[n] = getCell(neighs[n]);
     }
 
-
-    int numColliders = int(isCollider(neighCells[3])) + int(isCollider(neighCells[4])) + int(isCollider(neighCells[3])) + int(isCollider(neighCells[5]));
-    if (isCollider(cell) && numColliders < 4) {
+    int numColliders = int(isCollider(neighCells[3])) + int(isCollider(neighCells[4])) + int(isCollider(neighCells[0])) + int(isCollider(neighCells[5]));
+    if (setCollision && isCollider(cell) && numColliders < 4) {
         imageStore(collision_data, pos / 8, max(imageLoad(collision_data, pos / 8), vec4(vec3(1.0), 0.1)));
     }
     
@@ -387,8 +386,8 @@ void setCell(ivec2 pos, Cell cell) {
         imageStore(output_color, pos, color * min(light + ambientLight, vec4(1.0)));
     }
 }
-void setCell(ivec2 pos, Material mat) {
-    setCell(pos, Cell(mat, pos, pos));
+void setCell(ivec2 pos, Material mat, bool setCollision) {
+    setCell(pos, Cell(mat, pos, pos), setCollision);
 }
 
 
@@ -396,9 +395,9 @@ void setCell(ivec2 pos, Material mat) {
 void pullCell(ivec2 from, ivec2 to) {
     Cell other = getCell(from);
     if (isSolid(other)) {
-        setCell(to, EMPTY);
+        setCell(to, EMPTY, false);
     } else {
-        setCell(to, other);
+        setCell(to, other, false);
     }
 }
 
@@ -719,7 +718,7 @@ void emptyStep(Cell self, bool moveRight) {
         return;
     }
 
-    setCell(pos, self);
+    setCell(pos, self, false);
 }
 
 
@@ -731,7 +730,7 @@ void update(ivec2 pos) {
     Cell self = getCell(pos);
     
     if (self.mat == NULL) {
-        setCell(pos, self);
+        setCell(pos, self, false);
         return;
     };
     bool moveRight = moveRight;
@@ -741,23 +740,23 @@ void update(ivec2 pos) {
     } else if (isMovSolid(self)) {
         ivec2 res = movSolidStep(self, moveRight, true);
         if (res == pos) {
-            setCell(pos, self);
+            setCell(pos, self, true);
         } else {
             pullCell(res, pos);
         };
     } else if (isLiquid(self)) {
         ivec2 res = liquidStep(self, moveRight, true);
-        if (res != pos) {
-            pullCell(res, pos);
+        if (res == pos) {
+            setCell(pos, self, true);
         } else {
-            setCell(pos, self);
+            pullCell(res, pos);
         };
     } else if (isSolid(self)) {
-        setCell(pos, self);
+        setCell(pos, self, true);
     } else if (isGas(self)) {
         ivec2 res = gasStep(self, moveRight, true);
         if (res == pos) {
-            setCell(pos, self);
+            setCell(pos, self, true);
         } else {
             pullCell(res, pos);
         };
@@ -787,7 +786,7 @@ void main() {
     #endif // USE_CIRCLE_BRUSH
     
     if (applyBrush) {
-        setCell(pos, getMaterialFromID(brushMaterial));
+        setCell(pos, getMaterialFromID(brushMaterial), false);
         //imageStore(output_light, pos, vec4(getMaterialFromID(brushMaterial).emission, 1.0));
         return;
     };

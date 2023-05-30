@@ -3,7 +3,7 @@ extern crate glium;
 
 use std::time::Instant;
 
-use glium::glutin::dpi::{PhysicalPosition, PhysicalSize};
+use glium::glutin::dpi::{PhysicalPosition};
 use glium::glutin::event::{VirtualKeyCode};
 use glium::{
     glutin::{self, event::WindowEvent, event::Event},
@@ -12,6 +12,11 @@ pub mod simulation;
 use simulation::Simulation;
 pub mod renderer;
 use renderer::{Renderer, TextureDrawMode};
+pub mod physics;
+use physics::Physics;
+
+
+
 
 
 // One texture for collision:
@@ -23,10 +28,10 @@ use renderer::{Renderer, TextureDrawMode};
 pub fn run() {
     let size = (640, 480);
     //let size = (1920, 1080);
-
     let event_loop = glium::glutin::event_loop::EventLoop::new();
     let mut renderer = Renderer::new(size, &event_loop);
     let mut sim = Simulation::new(&renderer.display, size);
+    let mut physics = Physics::new();
 
     let mut last_render = Instant::now();
     event_loop.run(move |event, _, control_flow| {
@@ -46,11 +51,21 @@ pub fn run() {
             Event::MainEventsCleared => {
                 renderer.prepare_frame();
                 sim.run();
+                physics.set_delta(frame_delta);
+                physics.physics_step();
             },
             Event::RedrawRequested(_) => {
                 renderer.start_render();
                 renderer.render_texture(&sim.output_color, PhysicalPosition::new(0, 0), TextureDrawMode::Stretch, true);
-                //renderer.render_texture(&sim.collision_data, PhysicalPosition::new(0, 0), TextureDrawMode::Stretch);
+                //renderer.render_texture(&sim.collision_data, PhysicalPosition::new(0, 0), TextureDrawMode::Stretch, true);
+                let pts = physics.create_collision_from_texture(&sim.collision_data);
+                if let Some(pts) = pts {
+                    renderer.draw_primitive(&pts, sim.collision_tex_scale as f32, glium::index::PrimitiveType::LineLoop);
+                }
+                let pos = physics.ball_pos();
+                println!("{:?}", pos);
+                renderer.draw_primitive(&vec![pos], sim.collision_tex_scale as f32, glium::index::PrimitiveType::Points);
+
                 renderer.render_ui();
                 renderer.finish_render();
             },

@@ -100,5 +100,5 @@ void emptyStep(Cell self, bool moveRight) {
         return;
     }
 
-    setCell(pos, self);
+    setCell(pos, self, false);
 }
