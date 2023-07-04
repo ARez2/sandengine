@@ -31,6 +31,7 @@ layout(rgba32f) uniform image2D collision_data;
 layout(binding = 4) uniform sampler2D input_light;
 layout(rgba32f, binding = 5) uniform writeonly image2D output_light;
 layout(rgba32f, binding = 6) uniform writeonly image2D output_effects;
+layout(r32ui, binding = 7) uniform volatile coherent uimage2D image_lock;
 
 Cell[8] neighbours;
 
@@ -51,32 +52,28 @@ void update(ivec2 pos) {
         return;
     };
     bool moveRight = moveRight;
+    ivec2 target_pos = pos;
 
     if (self.mat == EMPTY) {
         emptyStep(self, moveRight);
     } else if (isMovSolid(self)) {
-        ivec2 res = movSolidStep(self, moveRight, true);
-        if (res == pos) {
-            setCell(pos, self, true);
-        } else {
-            pullCell(res, pos);
-        };
+        target_pos = movSolidStep(self, moveRight, true);
     } else if (isLiquid(self)) {
-        ivec2 res = liquidStep(self, moveRight, true);
-        if (res == pos) {
-            setCell(pos, self, true);
-        } else {
-            pullCell(res, pos);
-        };
-    } else if (isSolid(self)) {
-        setCell(pos, self, true);
+        target_pos = liquidStep(self, moveRight, true);
     } else if (isGas(self)) {
-        ivec2 res = gasStep(self, moveRight, true);
-        if (res == pos) {
+        target_pos = gasStep(self, moveRight, true);
+    }
+
+    if (self.mat != EMPTY) {
+        if (target_pos == pos) {
             setCell(pos, self, true);
+            imageAtomicExchange(image_lock, pos, 1);
         } else {
-            pullCell(res, pos);
-        };
+            //pullCell(target_pos, pos);
+            setCell(pos, EMPTY, false);
+            setCell(target_pos, self, false);
+            imageAtomicExchange(image_lock, pos, 1);
+        }
     }
 }
 
@@ -85,6 +82,11 @@ void main() {
     if (pos.x >= simSize.x || pos.x < 0 || pos.y >= simSize.y || pos.y < 0) {
         return;
     };
+
+    // TODO: Smaller init time
+    if (time < 0.2) {
+        setCell(pos, EMPTY, false);
+    }
 
     ivec2[8] neighPositions = getDiagonalNeighbours(pos);
     for (int n = 0; n < neighbours.length(); n++) {
@@ -104,7 +106,6 @@ void main() {
     
     if (applyBrush) {
         setCell(pos, getMaterialFromID(brushMaterial), false);
-        //imageStore(output_light, pos, vec4(getMaterialFromID(brushMaterial).emission, 1.0));
         return;
     };
 
@@ -121,7 +122,4 @@ void main() {
     }
     imageStore(output_color, pos, vec4(col, 1.0));
     #endif // DEBUG_SHOW_MOVERIGHT
-
-    vec2 p = vec2(pos) / vec2(simSize);
-    //imageStore(output_color, pos, vec4(p.x, p.y, 0.0, 1.0));
 }

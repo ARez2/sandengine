@@ -91,11 +91,12 @@ impl Simulation {
         
         let img_unit_format = glium::uniforms::ImageUnitFormat::RGBA32F;
         let write = glium::uniforms::ImageUnitAccess::Write;
+        let read_write = uniforms::ImageUnitAccess::ReadWrite;
         let output_data_img = self.output_data.image_unit(img_unit_format).unwrap().set_access(write);
         let output_light_img = self.output_light.image_unit(img_unit_format).unwrap().set_access(write);
         let output_color_img = self.output_color.image_unit(img_unit_format).unwrap().set_access(write);
-        let collision_img = self.collision_data.image_unit(img_unit_format).unwrap().set_access(uniforms::ImageUnitAccess::ReadWrite);
-        
+        let collision_img = self.collision_data.image_unit(img_unit_format).unwrap().set_access(read_write);
+
         self.compute_shader.execute(
             uniform! {
                 input_data: &self.input_data,

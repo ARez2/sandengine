@@ -42,6 +42,7 @@ pub fn run() {
         let frame_delta = last_render.elapsed();
         last_render = Instant::now();
         let _fps = 1.0f64 / frame_delta.as_secs_f64();
+        sim.params.time += frame_delta.as_secs_f32();
         //println!("FPS: {}, delta (ms): {}", fps, frame_delta.as_secs_f64() * 1000.0);
 
         match event {
@@ -60,10 +61,10 @@ pub fn run() {
                 //renderer.render_texture(&sim.collision_data, PhysicalPosition::new(0, 0), TextureDrawMode::Stretch, true);
                 let pts = physics.create_collision_from_texture(&sim.collision_data);
                 if let Some(pts) = pts {
-                    renderer.draw_primitive(&pts, sim.collision_tex_scale as f32, glium::index::PrimitiveType::LineLoop);
+                    //renderer.draw_primitive(&pts, sim.collision_tex_scale as f32, glium::index::PrimitiveType::LineLoop);
                 }
                 let pos = physics.ball_pos();
-                println!("{:?}", pos);
+                //println!("{:?}", pos);
                 renderer.draw_primitive(&vec![pos], sim.collision_tex_scale as f32, glium::index::PrimitiveType::Points);
 
                 renderer.render_ui();
