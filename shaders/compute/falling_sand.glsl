@@ -74,19 +74,37 @@ Cell simulate() {
         swap(down, downright);
     }
 
-    float downspread = 0.5; // 0.5
-    float rand2 = 0.5; // 0.9
+    float ownDensity = self.mat.density;
 
-    // Sand
-    if (downright.mat == SAND) {
-        if (right.mat.density < SAND.density) {
-            if (v.z < 0.9) {
-                swap(downright, right);
+    // The lower, the less likely it will be to fall diagonally, forming higher piles
+    // TODO: Make this a material property
+    float downspread = 0.7;
+
+    // First process movable solids and if that fails, process liquid movements
+    if (shouldDoMovSolidStep(self)) {
+        if (down.mat.density < ownDensity) {
+            swap(self, down);
+        } else if (right.mat.density < ownDensity && downright.mat.density < ownDensity) {
+            if (v.z < downspread) swap(self, downright);
+        //  We couldnt move using movSolidStep, so now try liquid movement
+        } else if (shouldDoLiquidStep(self)) {
+            if (right.mat.density < ownDensity) {
+                swap(self, right);
             }
-        } else if (self.mat.density < SAND.density && down.mat.density < SAND.density) {
-            swap(downright, self);
+        }
+    } else if (shouldDoGasStep(down)) {
+        float gasDissolveChance = 0.01;
+        if (v.y < gasDissolveChance) {
+            down = Cell(EMPTY, pos_rounded, pos_rounded);
+        } else {
+            if (!isSolid(self) && down.mat.density < self.mat.density) {
+                swap(down, self);
+            } else if (!isSolid(right) && down.mat.density < right.mat.density) {
+                swap(down, right);
+            }
         }
     }
+
 
     if (v.x < 0.5) {
         swap(self, right);
