@@ -38,11 +38,6 @@ Cell[8] neighbours;
 
 #include "operations.glsl"
 
-#include "types/movsolid.glsl"
-#include "types/gas.glsl"
-#include "types/liquid.glsl"
-#include "types/empty.glsl"
-
 
 Cell simulate() {
     ivec2 pos = ivec2(floor(gl_GlobalInvocationID.xy));
@@ -73,6 +68,8 @@ Cell simulate() {
         swap(self, right);
         swap(down, downright);
     }
+
+
 
     float ownDensity = self.mat.density;
 
@@ -106,6 +103,7 @@ Cell simulate() {
     }
 
 
+
     if (v.x < 0.5) {
         swap(self, right);
         swap(down, downright);
@@ -134,7 +132,7 @@ void main() {
     };
 
     // TODO: Smaller init time
-    if (time < 0.2) {
+    if (time < 0.1) {
         setCell(pos, EMPTY, false);
     }
 

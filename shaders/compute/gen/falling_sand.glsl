@@ -158,18 +158,6 @@ float noise(vec2 p) {
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
 ivec2[4] getNeighbours(ivec2 pos) {
     ivec2 neighs[4] = {
         pos + UP,
@@ -495,326 +483,6 @@ void pullCell(ivec2 from, ivec2 to) {
 
 
 
-
-ivec2 movSolidStep(Cell self, bool moveRight, bool isSelf) {
-    float ownDensity = self.mat.density;
-    ivec2 pos = self.pos;
-
-    Cell below;
-    Cell left;
-    Cell right;
-    Cell downleft;
-    Cell downright;
-    if (isSelf) {
-        below = neighbours[NEIGH_IDX_DOWN];
-        left = neighbours[NEIGH_IDX_LEFT];
-        right = neighbours[NEIGH_IDX_RIGHT];
-        downleft = neighbours[NEIGH_IDX_DOWNLEFT];
-        downright = neighbours[NEIGH_IDX_DOWNRIGHT];
-    } else {
-        below = getCell(pos + DOWN);
-        left = getCell(pos + LEFT);
-        right = getCell(pos + RIGHT);
-        downleft = getCell(pos + DOWNLEFT);
-        downright = getCell(pos + DOWNRIGHT);
-    }
-    bool canMoveDown = below.mat.density < ownDensity
-        && (!shouldDoMovSolidStep(left) || (left.mat.density > downleft.mat.density || left.mat.density <= below.mat.density || left.mat.density > getCell(left.pos + DOWNLEFT).mat.density))
-        && (!shouldDoMovSolidStep(right) || (right.mat.density > downright.mat.density || right.mat.density <= below.mat.density || right.mat.density > getCell(right.pos + DOWNRIGHT).mat.density));
-    if (canMoveDown) {
-        return pos + DOWN;
-    };
-
-    Cell firstTarget;
-    Cell secondTarget;
-    if (moveRight) {
-        firstTarget = downright;
-        secondTarget = downleft;
-    } else {
-        firstTarget = downleft;
-        secondTarget = downright;
-    }
-    
-    if (firstTarget.mat.density < ownDensity) {
-        return firstTarget.pos;
-    }
-
-    if (secondTarget.mat.density < ownDensity) {
-        return secondTarget.pos;
-    }
-
-    return pos;
-}
-
-
-
-
-
-ivec2 gasStep(Cell self, bool moveRight, bool isSelf) {
-    float ownDensity = self.mat.density;
-    ivec2 pos = self.pos;
-
-
-    Cell above;
-    Cell left;
-    Cell right;
-    Cell upleft;
-    Cell upright;
-    if (isSelf) {
-        above = neighbours[NEIGH_IDX_UP];
-        left = neighbours[NEIGH_IDX_LEFT];
-        right = neighbours[NEIGH_IDX_RIGHT];
-        upleft = neighbours[NEIGH_IDX_UPLEFT];
-        upright = neighbours[NEIGH_IDX_UPRIGHT];
-    } else {
-        above = getCell(pos + UP);
-        left = getCell(pos + LEFT);
-        right = getCell(pos + RIGHT);
-        upleft = getCell(pos + UPLEFT);
-        upright = getCell(pos + UPRIGHT);
-    }
-    bool canMoveUp = ownDensity < above.mat.density && !isSolid(above)
-        && (!shouldDoGasStep(left) || (left.mat.density < upleft.mat.density || left.mat.density >= above.mat.density || left.mat.density < getCell(left.pos + UPLEFT).mat.density))
-        && (!shouldDoGasStep(right) || (right.mat.density < upright.mat.density || right.mat.density >= above.mat.density || right.mat.density < getCell(right.pos + UPRIGHT).mat.density));
-    if (canMoveUp) {
-        return pos + UP;
-    };
-
-
-    Cell firstTarget;
-    Cell secondTarget;
-    if (moveRight) {
-        firstTarget = upright;
-        secondTarget = upleft;
-    } else {
-        firstTarget = upleft;
-        secondTarget = upright;
-    }
-
-    if (ownDensity < firstTarget.mat.density && (firstTarget.mat == EMPTY || isGas(firstTarget))) {
-        return firstTarget.pos;
-    }
-
-    if (ownDensity < secondTarget.mat.density && (secondTarget.mat == EMPTY || isGas(secondTarget))) {
-        return secondTarget.pos;
-    }
-
-    return pos;
-}
-
-
-
-
-
-//Make water look for sand above which it could swap to
-bool canLiquidMoveHere(ivec2 pos, bool moveRight, bool includeHorizontal) {
-    ivec2[3] neighs = {
-        pos + UP,
-        pos + UPLEFT,
-        pos + UPRIGHT,
-    };
-    for (int n = 0; n < neighs.length(); n++) {
-        Cell neigh = getCell(neighs[n]);
-        if ((shouldDoMovSolidStep(neigh) && movSolidStep(neigh, moveRight, false) == pos) || isLiquid(neigh)) {
-            return false;
-        };
-    };
-    return true;
-}
-
-bool liquidMoveCondition(Cell liquid, ivec2 dir, int checkLength, bool moveRight, bool isMinor) {
-    ivec2 checkpos = liquid.pos + dir * checkLength;
-    Cell target = getCell(checkpos);
-    if (target.mat.density >= liquid.mat.density) {
-        return false;
-    };
-
-    // Had to implement a "priority"
-    // Imagine this setup (moveRight=true):
-    //             X  Y|
-    // X thinks: "Since its moveRight, I have priority and
-    //            should move right next to Y"
-    // Y thinks: "Since I cannot move right, I can move left
-    //            right next to X."
-    // if both act, they would swap positions:
-    //              YX |
-    // This is not desired. Instead, X knows if it goes left 
-    // as a minor (against the moveRight direction)
-
-    // When it does it checks a certain amount of cells in the direction
-    // it wants to move to and if there is a liquid, that could potentially
-    // move, resulting in such a swap, X does not move
-    if (isMinor) {
-        for (int c = checkLength + 1; c < EMPTY_MAX_DISPERSION_CHECK; c++) {
-            Cell ccell = getCell(liquid.pos + dir * c);
-            if (ccell.mat.density < liquid.mat.density) {
-                continue;
-            }
-            // Found a liquid that could move into or over our target position
-            if (shouldDoLiquidStep(ccell) && ccell.pos.x - dir.x * ccell.mat.dispersion >= checkpos.x) {
-                return false;
-            }
-        }
-    }
-
-    //return target.mat.density < liquid.mat.density;
-    return canLiquidMoveHere(checkpos, moveRight, false);
-}
-
-
-// TODO: Apply liquid horizontal step between 2 liquids
-
-ivec2 liquidStep(Cell self, bool moveRight, bool isSelf) {
-    float ownDensity = self.mat.density;
-    ivec2 pos = self.pos;
-
-    ivec2[2] movepositions = getMoveDirs(pos + UP, moveRight);
-    ivec2[3] positions1 = {
-        pos + UP,
-        movepositions[0],
-        movepositions[1]
-    };
-    for (int p = 0; p < positions1.length(); p++) {
-        ivec2 position = positions1[p];
-        Cell target = getCell(position);
-        if (shouldDoMovSolidStep(target) && movSolidStep(target, moveRight, false) == pos) {
-            return position;
-        }
-    }
-
-    ivec2 movSolidRes = movSolidStep(self, moveRight, isSelf);
-    if (movSolidRes != pos) {
-        return movSolidRes;
-    };
-
-    ivec2[2] positions = getMoveDirs(moveRight);
-    
-    int dispersion = self.mat.dispersion;
-    ivec2 last_possible_pos = pos;
-    for (int disp = 1; disp <= dispersion; disp++) {
-        if (liquidMoveCondition(self, positions[0], disp, moveRight, false)) {
-            last_possible_pos = pos + positions[0] * disp;
-        } else if (liquidMoveCondition(self, positions[1], disp, moveRight, true)) {
-            last_possible_pos = pos + positions[1] * disp;
-        } else {
-            break;
-        };
-    };
-
-    return last_possible_pos;
-}
-
-
-
-
-
-bool tryPullMovSolid(Cell self, bool moveRight) {
-    if (shouldDoMovSolidStep(neighbours[NEIGH_IDX_UP]) && movSolidStep(neighbours[NEIGH_IDX_UP], moveRight, false) == self.pos) {
-        pullCell(self.pos + UP, self.pos);
-        return true;
-    }
-
-    ivec2 firstPos;
-    ivec2 secondPos;
-    Cell firstTarget;
-    Cell secondTarget;
-    if (moveRight) {
-        firstPos = self.pos + UPLEFT;
-        secondPos = self.pos + UPRIGHT;
-        firstTarget = neighbours[NEIGH_IDX_UPLEFT];
-        secondTarget = neighbours[NEIGH_IDX_UPRIGHT];
-    } else {
-        firstPos = self.pos + UPRIGHT;
-        secondPos = self.pos + UPLEFT;
-        firstTarget = neighbours[NEIGH_IDX_UPRIGHT];
-        secondTarget = neighbours[NEIGH_IDX_UPLEFT];
-    }
-
-    if (shouldDoMovSolidStep(firstTarget) && movSolidStep(firstTarget, moveRight, false) == self.pos) {
-        pullCell(firstPos, self.pos);
-        return true;
-    }
-
-    if (shouldDoMovSolidStep(secondTarget) && movSolidStep(secondTarget, moveRight, false) == self.pos) {
-        pullCell(secondPos, self.pos);
-        return true;
-    }
-
-    return false;
-}
-
-
-bool tryPullGas(Cell self, bool moveRight) {
-    ivec2[2] movePositions = getMoveDirs(self.pos + DOWN, moveRight);
-    ivec2[3] positions = {
-        self.pos + DOWN,
-        movePositions[0],
-        movePositions[1]
-    };
-
-    for (int p = 0; p < positions.length(); p++) {
-        Cell c = getCell(positions[p]);
-        if (shouldDoGasStep(c) && gasStep(c, moveRight, false) == self.pos) {
-            pullCell(positions[p], self.pos);
-            return true;
-        }
-    }
-    return false;
-}
-
-
-void emptyStep(Cell self, bool moveRight) {
-    ivec2 pos = self.pos;
-    
-    if (tryPullMovSolid(self, moveRight)) {
-        return;
-    }
-    
-    ivec2[2] positions = getMoveDirs(moveRight);
-    int dispersion = EMPTY_MAX_DISPERSION_CHECK;
-    ivec2 last_possible_pos = pos;
-    // Horizontal, account for dispersion
-    for (int disp = dispersion; disp > 0; disp--) {
-        ivec2 first_checkpos = pos + positions[0] * disp;
-        ivec2 second_checkpos = pos + positions[1] * disp;
-        Cell first = getCell(first_checkpos);
-        Cell second = getCell(second_checkpos);
-        if (shouldDoLiquidStep(first) && liquidStep(first, moveRight, false) == pos) {
-            pullCell(first_checkpos, pos);
-            return;
-        }
-        if (shouldDoLiquidStep(second) && liquidStep(second, moveRight, false) == pos) {
-            pullCell(second_checkpos, pos);
-            return;
-        };
-    };
-
-    ivec2[2] movepositions = getMoveDirs(pos + DOWN, moveRight);
-    ivec2[3] positions2 = {
-        pos + DOWN,
-        movepositions[0],
-        movepositions[1]
-    };
-    for (int p = 0; p < positions2.length(); p++) {
-        ivec2 position = positions2[p];
-        Cell target = getCell(position);
-        if (shouldDoLiquidStep(target) && liquidStep(target, moveRight, false) == pos) {
-            pullCell(position, pos);
-            return;
-        }
-    }
-
-    if (tryPullGas(self, moveRight)) {
-        return;
-    }
-
-    setCell(pos, self, false);
-}
-
-
-
-
-
 Cell simulate() {
     ivec2 pos = ivec2(floor(gl_GlobalInvocationID.xy));
     ivec2 off = getMargolusOffset(frame);
@@ -845,6 +513,8 @@ Cell simulate() {
         swap(down, downright);
     }
 
+
+
     float ownDensity = self.mat.density;
 
     // The lower, the less likely it will be to fall diagonally, forming higher piles
@@ -864,7 +534,8 @@ Cell simulate() {
             }
         }
     } else if (shouldDoGasStep(down)) {
-        if (v.y < 0.01) {
+        float gasDissolveChance = 0.01;
+        if (v.y < gasDissolveChance) {
             down = Cell(EMPTY, pos_rounded, pos_rounded);
         } else {
             if (!isSolid(self) && down.mat.density < self.mat.density) {
@@ -874,6 +545,7 @@ Cell simulate() {
             }
         }
     }
+
 
 
     if (v.x < 0.5) {
@@ -904,7 +576,7 @@ void main() {
     };
 
     // TODO: Smaller init time
-    if (time < 0.2) {
+    if (time < 0.1) {
         setCell(pos, EMPTY, false);
     }
 

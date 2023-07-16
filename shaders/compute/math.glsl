@@ -114,18 +114,6 @@ float noise(vec2 p) {
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
 ivec2[4] getNeighbours(ivec2 pos) {
     ivec2 neighs[4] = {
         pos + UP,
