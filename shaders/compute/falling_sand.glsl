@@ -25,6 +25,7 @@ uniform uint brushSize;
 uniform int brushMaterial;
 uniform float time;
 uniform ivec2 simSize;
+uniform int frame;
 
 layout(rgba32f) uniform image2D collision_data;
 
@@ -43,39 +44,70 @@ Cell[8] neighbours;
 #include "types/empty.glsl"
 
 
-// Returns the next position of the cell
-void update(ivec2 pos) {
-    Cell self = getCell(pos);
-    
-    if (self.mat == NULL) {
-        setCell(pos, self, false);
-        return;
-    };
-    bool moveRight = moveRight;
-    ivec2 target_pos = pos;
+Cell simulate() {
+    ivec2 pos = ivec2(floor(gl_GlobalInvocationID.xy));
+    ivec2 off = getMargolusOffset(frame);
+    pos += off;
 
-    if (self.mat == EMPTY) {
-        emptyStep(self, moveRight);
-    } else if (isMovSolid(self)) {
-        target_pos = movSolidStep(self, moveRight, true);
-    } else if (isLiquid(self)) {
-        target_pos = liquidStep(self, moveRight, true);
-    } else if (isGas(self)) {
-        target_pos = gasStep(self, moveRight, true);
+    ivec2 pos_rounded = (pos / 2) * 2;
+    ivec2 pos_remainder = pos & 1;
+    int marg_idx = pos_remainder.x + pos_remainder.y * 2;
+    pos_rounded -= off;
+    pos -= off;
+
+    Cell self = getCell(pos_rounded);
+    Cell right = getCell(pos_rounded + RIGHT);
+    Cell down = getCell(pos_rounded + DOWN);
+    Cell downright = getCell(pos_rounded + DOWNRIGHT);
+
+    if (self.mat == EMPTY && right.mat == EMPTY && down.mat == EMPTY && downright.mat == EMPTY) {
+        return Cell(EMPTY, pos_rounded, pos_rounded);
     }
 
-    if (self.mat != EMPTY) {
-        if (target_pos == pos) {
-            setCell(pos, self, true);
-            imageAtomicExchange(image_lock, pos, 1);
-        } else {
-            //pullCell(target_pos, pos);
-            setCell(pos, EMPTY, false);
-            setCell(target_pos, self, false);
-            imageAtomicExchange(image_lock, pos, 1);
+    Cell up = getCell(pos_rounded + UP);
+    Cell upright = getCell(pos_rounded + UPRIGHT);
+    vec4 v = hash43(uvec3(pos_rounded, frame));
+    vec4 v2 = hash43(uvec3(pos_rounded, frame/8));
+
+    if (v.x < 0.5) {
+        swap(self, right);
+        swap(down, downright);
+    }
+
+    float downspread = 0.5; // 0.5
+    float rand2 = 0.5; // 0.9
+
+    // Sand
+    if (downright.mat == SAND) {
+        if (right.mat.density < SAND.density) {
+            if (v.z < 0.9) {
+                swap(downright, right);
+            }
+        } else if (self.mat.density < SAND.density && down.mat.density < SAND.density) {
+            swap(downright, self);
         }
     }
+
+    if (v.x < 0.5) {
+        swap(self, right);
+        swap(down, downright);
+    }
+
+    switch (marg_idx) {
+        case 0:
+            return self;
+        case 1:
+            return right;
+        case 2:
+            return down;
+        case 3:
+            return downright;
+    }
+
+    return Cell(EMPTY, pos, pos);
 }
+
+
 
 void main() {
     ivec2 pos = ivec2(gl_GlobalInvocationID.xy);
@@ -88,10 +120,6 @@ void main() {
         setCell(pos, EMPTY, false);
     }
 
-    ivec2[8] neighPositions = getDiagonalNeighbours(pos);
-    for (int n = 0; n < neighbours.length(); n++) {
-        neighbours[n] = getCell(neighPositions[n]);
-    }
 
     // Process input
     vec2 mousepos = mousePos * vec2(simSize);
@@ -109,7 +137,17 @@ void main() {
         return;
     };
 
-    update(pos);
+
+    Cell result = simulate();
+    setCell(pos, result, false);
+
+
+    // ivec2[8] neighPositions = getDiagonalNeighbours(pos);
+    // for (int n = 0; n < neighbours.length(); n++) {
+    //     neighbours[n] = getCell(neighPositions[n]);
+    // }
+
+    
 
     #ifdef DEBUG_SHOW_ORIG_POS
     imageStore(output_color, pos, vec4(vec2(getCell(pos).origPos) / vec2(simSize), 0.0, 1.0));

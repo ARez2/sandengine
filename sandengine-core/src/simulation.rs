@@ -13,6 +13,7 @@ pub struct Params {
     pub brushSize: u32,
     pub brushMaterial: i32,
     pub time: f32,
+    pub frame: i32,
 }
 impl Params {
     pub fn new() -> Self {
@@ -22,6 +23,7 @@ impl Params {
             brushSize: 5,
             brushMaterial: 0,
             mousePressed: false,
+            frame: 0,
             ..Default::default()
         }
     }
@@ -88,6 +90,7 @@ impl Simulation {
 
         let mut rng = rand::thread_rng();
         self.params.moveRight = rng.gen_bool(0.5);
+        self.params.frame += 1;
         
         let img_unit_format = glium::uniforms::ImageUnitFormat::RGBA32F;
         let write = glium::uniforms::ImageUnitAccess::Write;
@@ -112,6 +115,7 @@ impl Simulation {
                 brushMaterial: self.params.brushMaterial,
                 time: self.params.time,
                 simSize: (self.size.0 as i32, self.size.1 as i32),
+                frame: self.params.frame,
             }, self.workgroups.0, self.workgroups.1, self.workgroups.2);
         std::mem::swap(&mut self.input_data, &mut self.output_data);
         std::mem::swap(&mut self.input_light, &mut self.output_light);

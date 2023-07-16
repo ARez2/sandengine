@@ -55,25 +55,73 @@ float gold_noise(in vec2 xy, in float seed) {
 
 
 
-float hash( uint n ) {
-    // integer hash copied from Hugo Elias
-	n = (n << 13U) ^ n;
-    n = n * (n * n * 15731U + 789221U) + 1376312589U;
-    return float( n & uint(0x7fffffffU))/float(0x7fffffff);
+// From Chris Wellons Hash Prospector
+// https://nullprogram.com/blog/2018/07/31/
+// https://www.shadertoy.com/view/WttXWX
+uint hashi(inout uint x)
+{
+    x ^= x >> 16;
+    x *= 0x7feb352dU;
+    x ^= x >> 15;
+    x *= 0x846ca68bU;
+    x ^= x >> 16;
+    return x;
 }
-vec2 hash2( vec2 p ) // replace this by something better
+
+// Modified to work with 4 values at once
+uvec4 hash4i(inout uint y)
+{
+    uvec4 x = y * uvec4(213u, 2131u, 21313u, 213132u);
+    x ^= x >> 16;
+    x *= 0x7feb352dU;
+    x ^= x >> 15;
+    x *= 0x846ca68bU;
+    x ^= x >> 16;
+    y = x.x;
+    return x;
+}
+
+vec2 old_hash2( vec2 p ) // replace this by something better
 {
 	p = vec2( dot(p,vec2(127.1,311.7)), dot(p,vec2(269.5,183.3)) );
 	return -1.0 + 2.0*fract(sin(p)*43758.5453123);
 }
-vec3 hash3( uint n ) 
+
+float hash(inout uint x)
 {
-    // integer hash copied from Hugo Elias
-	n = (n << 13U) ^ n;
-    n = n * (n * n * 15731U + 789221U) + 1376312589U;
-    uvec3 k = n * uvec3(n,n*16807U,n*48271U);
-    return vec3( k & uvec3(0x7fffffffU))/float(0x7fffffff);
+    return float( hashi(x) ) / float( 0xffffffffU );
 }
+
+vec2 hash2(inout uint x)
+{
+    return vec2(hash(x), hash(x));
+}
+
+vec3 hash3(inout uint x)
+{
+    return vec3(hash(x), hash(x), hash(x));
+}
+
+vec4 hash4(inout uint x)
+{
+    return vec4( hash4i(x) ) / float( 0xffffffffU );
+    //return vec4(hash(x), hash(x), hash(x), hash(x));
+}
+
+vec4 hash42(uvec2 p)
+{
+    uint x = p.x*2131u + p.y*2131u*2131u;
+    return vec4( hash4i(x) ) / float( 0xffffffffU );
+    //return vec4(hash(x), hash(x), hash(x), hash(x));
+}
+
+vec4 hash43(uvec3 p)
+{
+    uint x = p.x*461u + p.y*2131u + p.z*2131u*2131u;
+    return vec4( hash4i(x) ) / float( 0xffffffffU );
+    //return vec4(hash(x), hash(x), hash(x), hash(x));
+}
+
 
 float _noise( in vec2 p )
 {
@@ -87,7 +135,7 @@ float _noise( in vec2 p )
     vec2  b = a - o + K2;
 	vec2  c = a - 1.0 + 2.0*K2;
     vec3  h = max( 0.5-vec3(dot(a,a), dot(b,b), dot(c,c) ), 0.0 );
-	vec3  n = h*h*h*h*vec3( dot(a,hash2(i+0.0)), dot(b,hash2(i+o)), dot(c,hash2(i+1.0)));
+	vec3  n = h*h*h*h*vec3( dot(a,old_hash2(i+0.0)), dot(b,old_hash2(i+o)), dot(c,old_hash2(i+1.0)));
     return 0.25 + 0.5*dot( n, vec3(70.0) );
 }
 
@@ -107,11 +155,20 @@ float noise(vec2 p) {
 }
 
 
-float random(vec2 st)
-{
-    return fract(sin(dot(st.xy, vec2(12.9898,78.233))) * 43758.5453123);
-}
-     
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 ivec2[4] getNeighbours(ivec2 pos) {
     ivec2 neighs[4] = {
@@ -270,6 +327,7 @@ uniform uint brushSize;
 uniform int brushMaterial;
 uniform float time;
 uniform ivec2 simSize;
+uniform int frame;
 
 layout(rgba32f) uniform image2D collision_data;
 
@@ -289,6 +347,37 @@ bool outOfBounds(vec2 pos) {
 bool outOfBounds(ivec2 pos) {
     return pos.x >= simSize.x || pos.x < 0 || pos.y >= simSize.y || pos.y < 0;
 }
+
+void swap(inout vec4 a, inout vec4 b) {
+    vec4 tmp = a;
+    a = b;
+    b = tmp;
+}
+void swap(inout Cell a, inout Cell b) {
+    Cell tmp = a;
+    a = b;
+    b = tmp;
+}
+
+ivec2 getMargolusOffset(int frame) {
+    frame = frame % 4;
+    if (frame == 1)
+        return ivec2(1, 1);
+    else if (frame == 2)
+       return ivec2(0, 1);
+    else if (frame == 3)
+        return ivec2(1, 0);
+    return ivec2(0, 0);
+}
+
+int cellToID(vec4 p) {
+    return int(dot(p, vec4(1, 2, 4, 8)));
+}
+
+vec4 IDToCell(int id) {
+    return vec4(id%2, (id/2)%2, (id/4)%2, (id/8)%2);
+}
+
 
 Cell getCell(ivec2 pos) {
     if (outOfBounds(pos)) {
@@ -726,39 +815,70 @@ void emptyStep(Cell self, bool moveRight) {
 
 
 
-// Returns the next position of the cell
-void update(ivec2 pos) {
-    Cell self = getCell(pos);
-    
-    if (self.mat == NULL) {
-        setCell(pos, self, false);
-        return;
-    };
-    bool moveRight = moveRight;
-    ivec2 target_pos = pos;
+Cell simulate() {
+    ivec2 pos = ivec2(floor(gl_GlobalInvocationID.xy));
+    ivec2 off = getMargolusOffset(frame);
+    pos += off;
 
-    if (self.mat == EMPTY) {
-        emptyStep(self, moveRight);
-    } else if (isMovSolid(self)) {
-        target_pos = movSolidStep(self, moveRight, true);
-    } else if (isLiquid(self)) {
-        target_pos = liquidStep(self, moveRight, true);
-    } else if (isGas(self)) {
-        target_pos = gasStep(self, moveRight, true);
+    ivec2 pos_rounded = (pos / 2) * 2;
+    ivec2 pos_remainder = pos & 1;
+    int marg_idx = pos_remainder.x + pos_remainder.y * 2;
+    pos_rounded -= off;
+    pos -= off;
+
+    Cell self = getCell(pos_rounded);
+    Cell right = getCell(pos_rounded + RIGHT);
+    Cell down = getCell(pos_rounded + DOWN);
+    Cell downright = getCell(pos_rounded + DOWNRIGHT);
+
+    if (self.mat == EMPTY && right.mat == EMPTY && down.mat == EMPTY && downright.mat == EMPTY) {
+        return Cell(EMPTY, pos_rounded, pos_rounded);
     }
 
-    if (self.mat != EMPTY) {
-        if (target_pos == pos) {
-            setCell(pos, self, true);
-            imageAtomicExchange(image_lock, pos, 1);
-        } else {
-            //pullCell(target_pos, pos);
-            setCell(pos, EMPTY, false);
-            setCell(target_pos, self, false);
-            imageAtomicExchange(image_lock, pos, 1);
+    Cell up = getCell(pos_rounded + UP);
+    Cell upright = getCell(pos_rounded + UPRIGHT);
+    vec4 v = hash43(uvec3(pos_rounded, frame));
+    vec4 v2 = hash43(uvec3(pos_rounded, frame/8));
+
+    if (v.x < 0.5) {
+        swap(self, right);
+        swap(down, downright);
+    }
+
+    float downspread = 0.5; // 0.5
+    float rand2 = 0.5; // 0.9
+
+    // Sand
+    if (downright.mat == SAND) {
+        if (right.mat.density < SAND.density) {
+            if (v.z < 0.9) {
+                swap(downright, right);
+            }
+        } else if (self.mat.density < SAND.density && down.mat.density < SAND.density) {
+            swap(downright, self);
         }
     }
+
+    if (v.x < 0.5) {
+        swap(self, right);
+        swap(down, downright);
+    }
+
+    switch (marg_idx) {
+        case 0:
+            return self;
+        case 1:
+            return right;
+        case 2:
+            return down;
+        case 3:
+            return downright;
+    }
+
+    return Cell(EMPTY, pos, pos);
 }
+
+
 
 void main() {
     ivec2 pos = ivec2(gl_GlobalInvocationID.xy);
@@ -771,10 +891,6 @@ void main() {
         setCell(pos, EMPTY, false);
     }
 
-    ivec2[8] neighPositions = getDiagonalNeighbours(pos);
-    for (int n = 0; n < neighbours.length(); n++) {
-        neighbours[n] = getCell(neighPositions[n]);
-    }
 
     // Process input
     vec2 mousepos = mousePos * vec2(simSize);
@@ -792,7 +908,17 @@ void main() {
         return;
     };
 
-    update(pos);
+
+    Cell result = simulate();
+    setCell(pos, result, false);
+
+
+    // ivec2[8] neighPositions = getDiagonalNeighbours(pos);
+    // for (int n = 0; n < neighbours.length(); n++) {
+    //     neighbours[n] = getCell(neighPositions[n]);
+    // }
+
+    
 
     #ifdef DEBUG_SHOW_ORIG_POS
     imageStore(output_color, pos, vec4(vec2(getCell(pos).origPos) / vec2(simSize), 0.0, 1.0));

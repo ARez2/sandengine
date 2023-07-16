@@ -8,6 +8,37 @@ bool outOfBounds(ivec2 pos) {
     return pos.x >= simSize.x || pos.x < 0 || pos.y >= simSize.y || pos.y < 0;
 }
 
+void swap(inout vec4 a, inout vec4 b) {
+    vec4 tmp = a;
+    a = b;
+    b = tmp;
+}
+void swap(inout Cell a, inout Cell b) {
+    Cell tmp = a;
+    a = b;
+    b = tmp;
+}
+
+ivec2 getMargolusOffset(int frame) {
+    frame = frame % 4;
+    if (frame == 1)
+        return ivec2(1, 1);
+    else if (frame == 2)
+       return ivec2(0, 1);
+    else if (frame == 3)
+        return ivec2(1, 0);
+    return ivec2(0, 0);
+}
+
+int cellToID(vec4 p) {
+    return int(dot(p, vec4(1, 2, 4, 8)));
+}
+
+vec4 IDToCell(int id) {
+    return vec4(id%2, (id/2)%2, (id/4)%2, (id/8)%2);
+}
+
+
 Cell getCell(ivec2 pos) {
     if (outOfBounds(pos)) {
         #ifdef SCREEN_IS_BORDER
