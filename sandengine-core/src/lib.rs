@@ -58,9 +58,7 @@ pub fn run() {
             Event::RedrawRequested(_) => {
                 renderer.start_render();
                 renderer.render_texture(&sim.output_color, PhysicalPosition::new(0, 0), TextureDrawMode::Stretch, true);
-                //renderer.render_texture(&sim.collision_data, PhysicalPosition::new(0, 0), TextureDrawMode::Stretch, true);
-                //println!("{:?}", pos);
-                renderer.render_ui();
+                //renderer.render_ui();
                 renderer.finish_render();
             },
             Event::WindowEvent { event: WindowEvent::CloseRequested, .. } => {

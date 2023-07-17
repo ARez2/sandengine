@@ -1,10 +1,12 @@
 #version 140
 
+
 in vec2 position;
-uniform vec2 texSize;
+in vec2 tex_coords;
+
+out vec2 v_tex_coords;
 
 void main() {
-    vec2 pos_scaled = position / texSize;
-    vec2 pos = vec2((pos_scaled.x - 0.5) * 2.0, 0.0 - ((pos_scaled.y - 0.5) * 2.0));
-    gl_Position = vec4(pos, 0.0, 1.0);
+    gl_Position = vec4(position, 0.0, 1.0);
+    v_tex_coords = vec2(tex_coords.x, 1.0 - tex_coords.y);
 }
