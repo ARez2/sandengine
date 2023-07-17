@@ -63,9 +63,13 @@ bool isCollider(Cell cell) {
 }
 
 bool isLightObstacle(Cell cell) {
-    return cell.mat.emission == vec3(0.0) && (isSolid(cell) || isMovSolid(cell));
+    return cell.mat.emission.rgb == vec3(0.0) && (isSolid(cell) || isMovSolid(cell));
 }
 
+
+bool gt(vec3 a, vec3 b) {
+    return a.x > b.x && a.y > b.y && a.z > b.z;
+}
 
 void setCell(ivec2 pos, Cell cell, bool setCollision) {
     vec4 color = cell.mat.color;
@@ -93,47 +97,59 @@ void setCell(ivec2 pos, Cell cell, bool setCollision) {
         imageStore(collision_data, pos / 8, max(imageLoad(collision_data, pos / 8), vec4(vec3(1.0), 0.1)));
     }
     
-    
+    vec4 ambientLight = vec4(vec3(0.3), 1.0);
     vec4 light;
-    if (cell.mat.emission != vec3(0.0)) {
-        light = vec4(cell.mat.emission, 1.0);
+    if (cell.mat.emission.rgb != vec3(0.0)) {
+        light = cell.mat.emission;
+    } else if (pos.y == 0) {
+        light = vec4(vec3(1.0), 0.9999999);
     } else {
         vec3 avg_light = vec3(0.0);
         vec3 max_light = vec3(0.0);
-        vec2 offsetsToLight = vec2(0.0);
-        
+        float avg_falloff = 0.0;
+        int num_falloff = 0;
+
         int num_lightsources = 0;
         for (int n = 0; n < neighs.length(); n++) {
             Cell neigh = neighCells[n];
             ivec2 neighPos = neigh.pos;
             bool neighObstacle = isLightObstacle(neigh);
-            vec3 light_data = texelFetch(input_light, neighPos, 0).rgb * float(!neighObstacle);
-            if (light_data != vec3(0.0) || neigh.mat == EMPTY) {
+            vec4 light_data = texelFetch(input_light, neighPos, 0) * vec4(vec3(float(!neighObstacle)), 1.0);
+            if ((gt(light_data.rgb, vec3(0.0)) && light_data.a > 0.0) || neigh.mat == EMPTY) {
                 num_lightsources += 1;
-                vec3 light = light_data * 0.99999;
+                vec3 light = light_data.rgb * light_data.a * (1/length(light_data.rgb));
                 avg_light += light;
+                if (light_data.a > 0.0) {
+                    avg_falloff += light_data.a;
+                    num_falloff += 1;
+                }
 
-                vec3 m = light * 0.96;
+                //               0.96, (light_data.a - (1.0 - light_data.a) * 100.0)
+                vec3 m = light * (light_data.a * 0.9);
                 max_light = max(max_light, m);
             }
             
-            offsetsToLight += (neighPos - pos) * length(light_data);
         }
         if (num_lightsources > 0) {
             avg_light /= num_lightsources;
         }
-        //                                     0.1
-        light = vec4(mix(avg_light, max_light, 0.25), 1.0);
-        //vec2 dirToLight = normalize(offsetsToLight);
-        //imageStore(output_color, pos, vec4(dirToMaxLight.x, dirToMaxLight.y, 0.0, 1.0));
+        if (num_falloff> 0) {
+            avg_falloff /= float(num_falloff);
+        }
+        // Max light is fast but produces star like patterns and average is too slow, so lerp
+        //                                     0.1, 0.25
+        light = vec4(mix(avg_light.rgb, max_light, 0.25), avg_falloff);
+        
     }
     imageStore(output_light, pos, light);
-    vec4 ambientLight = vec4(vec3(0.3), 1.0);
-    if (cell.mat == EMPTY) {
-        imageStore(output_color, pos, light);
-    } else {
-        imageStore(output_color, pos, color * min(light + ambientLight, vec4(1.0)));
-    }
+    
+    // if (cell.mat == EMPTY) {
+    //     //imageStore(output_color, pos, light);
+    //     imageStore(output_color, pos, color * min(light + ambientLight, vec4(1.0)));
+    // } else {
+    //     imageStore(output_color, pos, color * min(light + ambientLight, vec4(1.0)));
+    // }
+    imageStore(output_color, pos, color);
 }
 void setCell(ivec2 pos, Material mat, bool setCollision) {
     setCell(pos, newCell(mat, pos), setCollision);

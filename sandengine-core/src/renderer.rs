@@ -165,64 +165,22 @@ impl Renderer {
         }
     }
 
-    pub fn render_texture(
+    pub fn render_sim(
         &mut self,
         texture: &glium::Texture2d,
-        pos: glium::glutin::dpi::PhysicalPosition<u32>,
-        draw_mode: TextureDrawMode,
-        flip: bool,
+        light_texture: &glium::Texture2d,
     ) {
         if let Some(target) = &mut self.current_frame {
-            let source_rect = Rect {
-                left: 0,
-                bottom: 0,
-                width: texture.width(),
-                height: texture.height(),
-            };
-            let dims = target.get_dimensions();
-
-            let (bottom, height_multi) = match flip {
-                true => (dims.1 - pos.y, -1),
-                false => (pos.y, 1),
-            };
-
-            let target_rect = match draw_mode {
-                TextureDrawMode::Stretch => BlitTarget {
-                    left: pos.x,
-                    bottom,
-                    width: dims.0 as i32,
-                    height: height_multi * (dims.1 as i32),
-                },
-                TextureDrawMode::KeepScale => BlitTarget {
-                    left: pos.x,
-                    bottom,
-                    width: texture.width() as i32,
-                    height: height_multi * (texture.height() as i32),
-                },
-                TextureDrawMode::Scale(new_size) => BlitTarget {
-                    left: pos.x,
-                    bottom,
-                    width: new_size.width as i32,
-                    height: height_multi * (new_size.height as i32),
-                },
-            };
-
-            // target.blit_buffers_from_simple_framebuffer(
-            //     &texture.as_surface(),
-            //     &source_rect,
-            //     &target_rect,
-            //     uniforms::MagnifySamplerFilter::Nearest,
-            //     glium::BlitMask::color(),
-            // );
-
-
             let index_buffer =
             glium::IndexBuffer::new(&self.display, glium::index::PrimitiveType::TriangleStrip, &[1 as u16, 2, 0, 3])
                 .unwrap();
-            let uniforms = uniform! {
-                tex: Sampler::new(texture)
+
+                let uniforms = uniform! {
+                color_tex: Sampler::new(texture)
                     .magnify_filter(uniforms::MagnifySamplerFilter::Nearest)
-                    .minify_filter(uniforms::MinifySamplerFilter::Nearest),
+                    .minify_filter(uniforms::MinifySamplerFilter::LinearMipmapNearest),
+                light_tex: light_texture,
+                tex_size: (texture.dimensions().0 as f32, texture.dimensions().1 as f32),
             };
 
             let draw_parameters = DrawParameters::default();

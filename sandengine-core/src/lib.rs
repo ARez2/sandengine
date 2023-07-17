@@ -57,7 +57,7 @@ pub fn run() {
             },
             Event::RedrawRequested(_) => {
                 renderer.start_render();
-                renderer.render_texture(&sim.output_color, PhysicalPosition::new(0, 0), TextureDrawMode::Stretch, true);
+                renderer.render_sim(&sim.output_color, &sim.output_light);
                 //renderer.render_ui();
                 renderer.finish_render();
             },
