@@ -52,6 +52,9 @@ pub fn run() {
             Event::MainEventsCleared => {
                 renderer.prepare_frame();
                 sim.run();
+                sim.run();
+                sim.run();
+                sim.run();
                 physics.set_delta(frame_delta);
                 physics.physics_step();
             },
