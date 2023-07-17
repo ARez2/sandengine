@@ -238,10 +238,12 @@ struct Material {
 
 struct Cell {
     Material mat;
-    ivec2 origPos;
     ivec2 pos;
 };
 
+Cell newCell(Material mat, ivec2 pos) {
+    return Cell(mat, pos);
+}
 
 
 
@@ -370,16 +372,15 @@ vec4 IDToCell(int id) {
 Cell getCell(ivec2 pos) {
     if (outOfBounds(pos)) {
         #ifdef SCREEN_IS_BORDER
-        return Cell(WALL, pos, pos);
+        return newCell(WALL, pos);
         #endif // SCREEN_IS_BORDER
-        return Cell(NULL, pos, pos);
+        return newCell(NULL, pos);
     };
     ivec4 data = ivec4(texelFetch(input_data, pos, 0));
-    // data: orig_pos.x  orig_pos.y  ___id___  00000000
-    ivec2 orig_pos = ivec2(data.r, data.g);
-    int matID = int(data.b);
+    // data: ___id___  00000000  00000000  00000000
+    int matID = int(data.r);
 
-    return Cell(getMaterialFromID(matID), orig_pos, pos);
+    return newCell(getMaterialFromID(matID), pos);
 }
 
 Cell getCell(ivec2 pos, ivec2 offset) {
@@ -401,14 +402,14 @@ void setCell(ivec2 pos, Cell cell, bool setCollision) {
     
     // TODO: Modify noise based on material
     if (cell.mat != EMPTY) {
-        float rand = noise(vec2(cell.origPos), 3, 2.0, 0.1) * 0.25;
+        float rand = noise(vec2(pos.x, pos.y), 3, 2.0, 0.25) * 0.25;
         color.r = clamp(color.r - rand, 0.0, 1.0);
         color.g = clamp(color.g - rand, 0.0, 1.0);
         color.b = clamp(color.b - rand, 0.0, 1.0);
     };
     
     //imageStore(output_effects, pos, vec4(cell.mat.emission, 1.0));
-    ivec4 data = ivec4(cell.origPos.x, cell.origPos.y, cell.mat.id, 1);
+    ivec4 data = ivec4(cell.mat.id, 0, 0, 0);
     imageStore(output_data, pos, data);
 
     ivec2[8] neighs = getDiagonalNeighbours(pos);
@@ -465,7 +466,7 @@ void setCell(ivec2 pos, Cell cell, bool setCollision) {
     }
 }
 void setCell(ivec2 pos, Material mat, bool setCollision) {
-    setCell(pos, Cell(mat, pos, pos), setCollision);
+    setCell(pos, newCell(mat, pos), setCollision);
 }
 
 
@@ -500,7 +501,7 @@ Cell simulate() {
     Cell downright = getCell(pos_rounded + DOWNRIGHT);
 
     if (self.mat == EMPTY && right.mat == EMPTY && down.mat == EMPTY && downright.mat == EMPTY) {
-        return Cell(EMPTY, pos_rounded, pos_rounded);
+        return newCell(EMPTY, pos_rounded);
     }
 
     Cell up = getCell(pos_rounded + UP);
@@ -536,7 +537,7 @@ Cell simulate() {
     } else if (shouldDoGasStep(down)) {
         float gasDissolveChance = 0.01;
         if (v.y < gasDissolveChance) {
-            down = Cell(EMPTY, pos_rounded, pos_rounded);
+            down = newCell(EMPTY, pos_rounded);
         } else {
             if (!isSolid(self) && down.mat.density < self.mat.density) {
                 swap(down, self);
@@ -568,7 +569,8 @@ Cell simulate() {
             return downright;
     }
 
-    return Cell(EMPTY, pos, pos);
+    // Maybe pos
+    return newCell(EMPTY, pos_rounded);
 }
 
 
@@ -579,7 +581,6 @@ void main() {
         return;
     };
 
-    // TODO: Smaller init time
     if (time < 0.1) {
         setCell(pos, EMPTY, false);
     }

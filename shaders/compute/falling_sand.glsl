@@ -56,7 +56,7 @@ Cell simulate() {
     Cell downright = getCell(pos_rounded + DOWNRIGHT);
 
     if (self.mat == EMPTY && right.mat == EMPTY && down.mat == EMPTY && downright.mat == EMPTY) {
-        return Cell(EMPTY, pos_rounded, pos_rounded);
+        return newCell(EMPTY, pos_rounded);
     }
 
     Cell up = getCell(pos_rounded + UP);
@@ -92,7 +92,7 @@ Cell simulate() {
     } else if (shouldDoGasStep(down)) {
         float gasDissolveChance = 0.01;
         if (v.y < gasDissolveChance) {
-            down = Cell(EMPTY, pos_rounded, pos_rounded);
+            down = newCell(EMPTY, pos_rounded);
         } else {
             if (!isSolid(self) && down.mat.density < self.mat.density) {
                 swap(down, self);
@@ -124,7 +124,8 @@ Cell simulate() {
             return downright;
     }
 
-    return Cell(EMPTY, pos, pos);
+    // Maybe pos
+    return newCell(EMPTY, pos_rounded);
 }
 
 
@@ -135,7 +136,6 @@ void main() {
         return;
     };
 
-    // TODO: Smaller init time
     if (time < 0.1) {
         setCell(pos, EMPTY, false);
     }
