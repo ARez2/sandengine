@@ -100,6 +100,10 @@ Cell simulate() {
                 swap(down, right);
             }
         }
+    } else if (shouldDoLiquidStep(down)) {
+        if (downright.mat.density < down.mat.density) {
+            swap(down, downright);
+        }
     }
 
 
