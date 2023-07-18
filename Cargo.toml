@@ -15,3 +15,4 @@ exclude = [
 
 [dependencies]
 sandengine-core = {path = "sandengine-core"}
+serde_yaml = "0.9.24"

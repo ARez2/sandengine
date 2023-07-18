@@ -1,0 +1,40 @@
+rules:
+    gravity:
+        if: DOWN.density < SELF.density
+        do: SWAP SELF DOWN
+
+
+materials:
+  sand:
+    color: [1.0, 1.0, 0.0, 1.0]
+    type: movable_solid
+    rules:
+      - rule: gravity
+      - rule: slide
+    density: 1.5
+
+  water:
+    color: "#007FFF"
+    type: liquid
+    logic_rules:
+      - rule: gravity
+        value: 0.5
+      - rule: flow       # Example logic rule: flow (spreads horizontally)
+        value: 0.3
+    density: 1
+
+  smoke:
+    color: [0.3, 0.3, 0.3, 1.0]
+    type: gas
+    logic_rules:
+      - rule: rise       # Example logic rule: rise (moves upward)
+        value: 0.8
+    density: 0.2
+
+  solid:
+    color: "#808080"
+    type: solid
+    logic_rules:
+      - rule: gravity
+        value: 1.2
+    density: 2.5
