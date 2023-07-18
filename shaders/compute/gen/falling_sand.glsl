@@ -219,6 +219,7 @@ struct Material {
 #define TYPE_MOVSOLID 2
 #define TYPE_LIQUID 3
 #define TYPE_GAS 4
+#define TYPE_PLANT 5
 
 #define EMPTY Material(0, vec4(0.0, 0.0, 0.0, 0.0), 1.0,  0, vec4(0.0), TYPE_EMPTY)
 #define SAND  Material(1, vec4(1.0, 1.0, 0.0, 1.0), 3.0,  1, vec4(0.0), TYPE_MOVSOLID)
@@ -230,6 +231,8 @@ struct Material {
 #define RADIOACTIVE Material(6, vec4(0.196, 0.55, 0.184, 1.0), 5.0,  0, vec4(0.05, 0.7, 0.05, 0.9), TYPE_SOLID)
 #define SMOKE Material(7, vec4(0.3, 0.3, 0.3, 0.3), 0.1,  1, vec4(0.0), TYPE_GAS)
 #define TOXIC Material(8, vec4(0.0, 0.7, 0.2, 0.5), 1.8,  2, vec4(0.0, 0.5, 0.0, 0.99999), TYPE_LIQUID)
+
+#define VINE Material(9, vec4(0.14, 0.5, 0.19, 1.0), 2.5, 0, vec4(0.0), TYPE_PLANT)
 
 
 
@@ -247,7 +250,7 @@ Cell newCell(Material mat, ivec2 pos) {
 
 
 
-#define NUM_MATERIALS 9
+#define NUM_MATERIALS 10
 
 Material[NUM_MATERIALS] materials() {
     Material allMaterials[NUM_MATERIALS] = {
@@ -260,6 +263,7 @@ Material[NUM_MATERIALS] materials() {
         RADIOACTIVE,
         SMOKE,
         TOXIC,
+        VINE,
     };
     return allMaterials;
 }
@@ -271,6 +275,10 @@ Material getMaterialFromID(int id) {
         };
     };
     return NULL;
+}
+
+bool isEmpty(Cell cell) {
+    return cell.mat == EMPTY;
 }
 
 bool isSolid(Cell cell) {
@@ -292,6 +300,9 @@ bool isMovSolid(Cell cell) {
     return cell.mat.type == TYPE_MOVSOLID;
 }
 
+bool isPlant(Cell cell) {
+    return cell.mat.type == TYPE_PLANT;
+}
 
 bool shouldDoMovSolidStep(Cell cell) {
     return isMovSolid(cell) || isLiquid(cell);
@@ -522,10 +533,10 @@ Cell simulate() {
 
     Cell up = getCell(pos_rounded + UP);
     Cell upright = getCell(pos_rounded + UPRIGHT);
-    vec4 v = hash43(uvec3(pos_rounded, frame));
-    vec4 v2 = hash43(uvec3(pos_rounded, frame/8));
+    vec4 rand1 = hash43(uvec3(pos_rounded, frame));
+    vec4 rand2 = hash43(uvec3(pos_rounded, frame/8));
 
-    if (v.x < 0.5) {
+    if (rand1.x < 0.5) {
         swap(self, right);
         swap(down, downright);
     }
@@ -543,7 +554,7 @@ Cell simulate() {
         if (down.mat.density < ownDensity) {
             swap(self, down);
         } else if (right.mat.density < ownDensity && downright.mat.density < ownDensity) {
-            if (v.z < downspread) swap(self, downright);
+            if (rand1.z < downspread) swap(self, downright);
         //  We couldnt move using movSolidStep, so now try liquid movement
         } else if (shouldDoLiquidStep(self)) {
             if (right.mat.density < ownDensity) {
@@ -552,7 +563,7 @@ Cell simulate() {
         }
     } else if (shouldDoGasStep(down)) {
         float gasDissolveChance = 0.01;
-        if (v.y < gasDissolveChance) {
+        if (rand1.y < gasDissolveChance) {
             down = newCell(EMPTY, pos_rounded);
         } else {
             if (!isSolid(self) && down.mat.density < self.mat.density) {
@@ -568,8 +579,21 @@ Cell simulate() {
     }
 
 
+    if (isEmpty(self)) {
+        if (isPlant(down)) {
+            if (rand1.x < 0.0001) self = newCell(VINE, pos_rounded);
+        } else if (down.mat == SAND && downright.mat == WATER) {
+            if (rand1.x < 0.01) self = newCell(VINE, pos_rounded);
+        }
+    }
 
-    if (v.x < 0.5) {
+    if (isPlant(self) && isEmpty(down) && isEmpty(right) && isEmpty(downright)) {
+        self = newCell(EMPTY, pos_rounded);
+        down = newCell(VINE, pos_rounded);
+    }
+
+
+    if (rand1.x < 0.5) {
         swap(self, right);
         swap(down, downright);
     }
