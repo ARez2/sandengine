@@ -228,7 +228,7 @@ struct Material {
 #define WALL  Material(5, vec4(0.1, 0.1, 0.1, 1.0), 99.0, 0, vec4(0.0), TYPE_SOLID)
 
 #define RADIOACTIVE Material(6, vec4(0.196, 0.55, 0.184, 1.0), 5.0,  0, vec4(0.05, 0.7, 0.05, 0.9), TYPE_SOLID)
-#define SMOKE Material(7, vec4(0.55, 0.55, 0.55, 0.3), 0.1,  1, vec4(0.0), TYPE_GAS)
+#define SMOKE Material(7, vec4(0.3, 0.3, 0.3, 0.3), 0.1,  1, vec4(0.0), TYPE_GAS)
 #define TOXIC Material(8, vec4(0.0, 0.7, 0.2, 0.5), 1.8,  2, vec4(0.0, 0.5, 0.0, 0.99999), TYPE_LIQUID)
 
 
@@ -480,9 +480,6 @@ void setCell(ivec2 pos, Cell cell, bool setCollision) {
     //     imageStore(output_color, pos, color * min(light + ambientLight, vec4(1.0)));
     // }
     imageStore(output_color, pos, color);
-    // if (light.a < 1.0) {
-    //     imageStore(output_color, pos, vec4(vec3(1.0 - light.a) * 30.0, 1.0));
-    // }
 }
 void setCell(ivec2 pos, Material mat, bool setCollision) {
     setCell(pos, newCell(mat, pos), setCollision);
