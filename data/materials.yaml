@@ -1,0 +1,25 @@
+rules:
+  gravity:
+    if: DOWN.density < SELF.density
+    do: SWAP SELF DOWN
+    mirrored: false
+  slide_diagonally:
+    if: DOWNRIGHT.density < SELF.density
+    do: swap(SELF, DOWNRIGHT)
+    mirrored: true
+
+
+types:
+  movable_solid:
+    base_rules: [
+        gravity,
+        slide_diagonally
+    ]
+
+
+materials:
+  sand:
+    color: [1.0, 1.0, 0.0, 1.0]
+    type: movable_solid
+    density: 1.5
+    selectable: true

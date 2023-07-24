@@ -8,6 +8,7 @@ edition = "2021"
 [workspace]
 members = [
     "sandengine-core",
+    "sandengine-lang"
 ]
 exclude = [
     "shaders"
@@ -15,4 +16,4 @@ exclude = [
 
 [dependencies]
 sandengine-core = {path = "sandengine-core"}
-serde_yaml = "0.9.24"
+sandengine-lang = {path = "sandengine-lang"}

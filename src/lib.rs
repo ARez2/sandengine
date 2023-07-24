@@ -1,18 +1,10 @@
 use std::str::FromStr;
-use serde_yaml;
 
 pub fn run() {
-    parse_yaml();
+    sandengine_lang::parse();
     return;
     build_compute_shaders();
     sandengine_core::run();
-}
-
-
-fn parse_yaml() {
-    let f = std::fs::read_to_string("materials.yaml").unwrap();
-    let d: serde_yaml::Value = serde_yaml::from_str(&f).unwrap();
-    println!("Read YAML string: {:?}", d.get("materials").unwrap());
 }
 
 

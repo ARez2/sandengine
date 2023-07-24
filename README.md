@@ -85,6 +85,8 @@ rules:
 
 Types are just a collection of rules, coupled with inheritance.
 
+A parent type must be defined **before** the child (inheritant) can reference it.
+
 ```yaml
 types:
     typename:
