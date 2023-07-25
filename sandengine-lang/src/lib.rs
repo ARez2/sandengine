@@ -1,12 +1,13 @@
 pub mod parser;
 use colored::Colorize;
-use parser::parse_file;
+use parser::parse_string;
 
 pub fn parse() {
     let cwd = std::env::current_dir().unwrap();
     let filepath = cwd.join("data")
         .join("materials.yaml");
-    let parse_res = parse_file(filepath);
+    let f = std::fs::read_to_string(filepath).unwrap();
+    let parse_res = parse_string(f);
     match parse_res {
         Ok(result) => {
             println!("{}{:#?}", "Rules: ".bold(), result.rules);

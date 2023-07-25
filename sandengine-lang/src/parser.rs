@@ -16,20 +16,20 @@ const TYPE_HINT_COLOR: &'static str = "sequence (array, '[...]') of 3-4 floats (
 
 #[derive(Debug, Error)]
 enum ParsingErr<T: Debug> {
-    #[error("Mandatory field '{field_name}' is missing in '{missing_in}'")]
+    #[error("{} Mandatory field '{}' is {} '{}'", "(MissingField)".red(), .field_name.bold(), "missing in".bold(), .missing_in.bold())]
     MissingField {
         field_name: String,
         missing_in: String,
     },
 
-    #[error("The type of the field '{:?}' inside of '{}' {}. The expected type is '{}'", .wrong_type, .missing_in.bold(), "is invalid".bold(), .expected.bold())]
+    #[error("{} The type of the field '{:?}' inside of '{}' {}. Expected: '{}'", "(InvalidType)".red(),.wrong_type, .missing_in.bold(), "is invalid".bold(), .expected.bold())]
     InvalidType {
         wrong_type: T,
         missing_in: String,
         expected: &'static str,
     },
 
-    #[error("The name '{}' (in '{}') {}. Make sure it was defined before referencing it.", .missing.bold(), .missing_in.bold(), "was not found".bold())]
+    #[error("{} The name '{}' (in '{}') {}. Make sure it was defined before referencing it.", "(NotFound)".red(),.missing.bold(), .missing_in.bold(), "was not found".bold())]
     NotFound {
         missing: String,
         missing_in: String,
@@ -99,8 +99,7 @@ pub struct ParsingResult {
 
 
 
-pub fn parse_file(file: PathBuf) -> anyhow::Result<ParsingResult> {
-    let f = std::fs::read_to_string(file).unwrap();
+pub fn parse_string(f: String) -> anyhow::Result<ParsingResult> {
     let data: serde_yaml::Value = serde_yaml::from_str(&f).unwrap();
 
     let mut data_serialized: Vec<Box<dyn GLSLConvertible>> = vec![];
