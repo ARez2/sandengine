@@ -4,12 +4,14 @@ use anyhow::{anyhow, bail};
 use thiserror::Error;
 use serde_yaml::{self, Mapping};
 
+use colored::Colorize;
+
 
 const TYPE_HINT_STRING: &'static str = "string";
 const TYPE_HINT_BOOL: &'static str = "bool (true/false)";
 const TYPE_HINT_FLOAT: &'static str = "float";
-const TYPE_HINT_SEQUENCE: &'static str = "sequence (array, '[...]'";
-const TYPE_HINT_COLOR: &'static str = "sequence (array, '[...]' of 3-4 floats (range 0.0-1.0) OR integers (range 0-255). With 3 elements, the alpha channel defaults to 1.0";
+const TYPE_HINT_SEQUENCE: &'static str = "sequence (array, '[...]')";
+const TYPE_HINT_COLOR: &'static str = "sequence (array, '[...]') of 3-4 floats (range 0.0-1.0) OR integers (range 0-255). (With 3 elements, the alpha channel defaults to 1.0)";
 
 
 #[derive(Debug, Error)]
@@ -20,14 +22,14 @@ enum ParsingErr<T: Debug> {
         missing_in: String,
     },
 
-    #[error("The type of the field '{wrong_type:?}' inside of '{missing_in}' is invalid. The expect type would be: '{expected}'")]
+    #[error("The type of the field '{:?}' inside of '{}' {}. The expected type is '{}'", .wrong_type, .missing_in.bold(), "is invalid".bold(), .expected.bold())]
     InvalidType {
         wrong_type: T,
         missing_in: String,
         expected: &'static str,
     },
 
-    #[error("The name '{missing}' (in '{missing_in}') was not found. Make sure it was defined before referencing it.")]
+    #[error("The name '{}' (in '{}') {}. Make sure it was defined before referencing it.", .missing.bold(), .missing_in.bold(), "was not found".bold())]
     NotFound {
         missing: String,
         missing_in: String,
@@ -103,10 +105,13 @@ pub fn parse() {
     let parse_res = parse_file(filepath);
     match parse_res {
         Ok(result) => {
-
+            println!("{}{:#?}", "Rules: ".bold(), result.rules);
+            println!("{}{:#?}", "Types: ".bold(), result.types);
+            println!("{}{:#?}", "Materials: ".bold(), result.materials);
+            println!("{}", "[sandengine-lang]: Parsing ok.".green().bold());
         },
         Err(err) => {
-            println!("[sandengine-lang]: '{}'", err);
+            println!("{} '{}'", "[sandengine-lang]:".red().bold(), err);
         }
     }
 }
@@ -178,8 +183,8 @@ fn parse_rules(rules: &Mapping) -> anyhow::Result<(Vec<SandRule>, Vec<Box<dyn GL
             }))?;
         let if_cond = if_cond.as_str()
             .ok_or(anyhow!(ParsingErr::InvalidType {
-                wrong_type: if_cond.clone(),
-                missing_in: format!("rules/{}/if", name),
+                wrong_type: "if".to_string(),
+                missing_in: format!("rules/{}", name),
                 expected: TYPE_HINT_STRING
             }))?
             .to_string();
@@ -191,8 +196,8 @@ fn parse_rules(rules: &Mapping) -> anyhow::Result<(Vec<SandRule>, Vec<Box<dyn GL
             }))?;
         let do_action = do_action.as_str()
             .ok_or(anyhow!(ParsingErr::InvalidType {
-                wrong_type: do_action.clone(),
-                missing_in: format!("rules/{}/do", name),
+                wrong_type: "do".to_string(),
+                missing_in: format!("rules/{}", name),
                 expected: TYPE_HINT_STRING
             }))?
             .to_string();
@@ -203,7 +208,7 @@ fn parse_rules(rules: &Mapping) -> anyhow::Result<(Vec<SandRule>, Vec<Box<dyn GL
                     mirror
                 } else {
                     bail!(ParsingErr::InvalidType {
-                        wrong_type: mirror.clone(),
+                        wrong_type: "mirrored",
                         missing_in: format!("rules/{}", name),
                         expected: TYPE_HINT_BOOL })
                 }
@@ -217,7 +222,6 @@ fn parse_rules(rules: &Mapping) -> anyhow::Result<(Vec<SandRule>, Vec<Box<dyn GL
             do_action,
             mirror: is_mirrored,
         };
-        println!("{rule:?}");
         rule_structs.push(rule.clone());
         glsl_structs.push(Box::new(rule));
     }
@@ -242,8 +246,8 @@ fn parse_types(types: &Mapping, rules: &Vec<SandRule>) -> anyhow::Result<(Vec<Sa
         let mut parent = String::new();
         if let Some(p) = inherits {
             let parent_str = p.as_str().ok_or(anyhow!(ParsingErr::InvalidType {
-                wrong_type: p.clone(),
-                missing_in: format!("types/{}/inherits", name),
+                wrong_type: "inherits",
+                missing_in: format!("types/{}", name),
                 expected: TYPE_HINT_STRING
             }))?;
             for t in type_structs.iter() {
@@ -265,8 +269,8 @@ fn parse_types(types: &Mapping, rules: &Vec<SandRule>) -> anyhow::Result<(Vec<Sa
                 for baserule in b_rules {
                     let rulename = baserule.as_str().ok_or(
                         anyhow!(ParsingErr::InvalidType {
-                            wrong_type: baserule.clone(),
-                            missing_in: format!("types/{}/base_rules", name),
+                            wrong_type: "base_rules",
+                            missing_in: format!("types/{}", name),
                             expected: TYPE_HINT_STRING
                         }))?;
                     let mut rule_valid = false;
@@ -298,7 +302,6 @@ fn parse_types(types: &Mapping, rules: &Vec<SandRule>) -> anyhow::Result<(Vec<Sa
             inherits: parent,
             base_rules
         };
-        println!("{:?}", s_type);
         type_structs.push(s_type.clone());
         glsl_structs.push(Box::new(s_type));
     }
@@ -327,7 +330,7 @@ fn parse_materials(materials: &Mapping, rules: &Vec<SandRule>, types: &Vec<SandT
             }))?;
         let mattype = mattype.as_str()
             .ok_or(anyhow!(ParsingErr::InvalidType {
-                wrong_type: mattype.clone(),
+                wrong_type: "type".to_string(),
                 missing_in: format!("materials/{}", name),
                 expected: TYPE_HINT_STRING
             }))?
@@ -356,15 +359,20 @@ fn parse_materials(materials: &Mapping, rules: &Vec<SandRule>, types: &Vec<SandT
         if let Some(col) = color_val.as_sequence() {
             if col.is_empty() || col.len() > 4 || col.len() < 3 {
                 bail!(ParsingErr::InvalidType {
-                    wrong_type: col.clone(),
-                    missing_in: format!("materials/{}/color", name),
+                    wrong_type: "color",
+                    missing_in: format!("materials/{}", name),
                     expected: TYPE_HINT_COLOR,
                 });
             }
             for (idx, comp) in col.iter().enumerate() {
                 if let Some(comp) = comp.as_f64() {
-                    color[idx] = comp as f32;
-                    continue;
+                    if comp > 1.0 && comp <= 255.0 {
+                        color[idx] = comp as f32 / 255.0;
+                        continue;
+                    } else if comp >= 0.0 && comp <= 1.0 {
+                        color[idx] = comp as f32;
+                        continue;
+                    }
                 }
                 if let Some(comp) = comp.as_u64() {
                     if comp > 0 && comp <= 255 {
@@ -373,8 +381,8 @@ fn parse_materials(materials: &Mapping, rules: &Vec<SandRule>, types: &Vec<SandT
                     }
                 }
                 bail!(ParsingErr::InvalidType {
-                    wrong_type: comp.clone(),
-                    missing_in: format!("materials/{}/color", name),
+                    wrong_type: "color",
+                    missing_in: format!("materials/{}", name),
                     expected: TYPE_HINT_COLOR
                 });
             }
@@ -398,7 +406,7 @@ fn parse_materials(materials: &Mapping, rules: &Vec<SandRule>, types: &Vec<SandT
             }))?;
         let density = density.as_f64()
             .ok_or(ParsingErr::InvalidType {
-                wrong_type: density.clone(),
+                wrong_type: "density".to_string(),
                 missing_in: format!("materials/{}/density", name),
                 expected: TYPE_HINT_FLOAT
             })?
@@ -417,16 +425,16 @@ fn parse_materials(materials: &Mapping, rules: &Vec<SandRule>, types: &Vec<SandT
                         }
                     } else {
                         bail!(ParsingErr::InvalidType {
-                            wrong_type: extra_rule.clone(),
-                            missing_in: format!("materials/{}/extra_rules", name),
+                            wrong_type: "extra_rules",
+                            missing_in: format!("materials/{}", name),
                             expected: TYPE_HINT_STRING
                         });
                     }
                 }
             } else {
                 bail!(ParsingErr::InvalidType {
-                    wrong_type: extra.clone(),
-                    missing_in: format!("materials/{}/extra_rules", name),
+                    wrong_type: "extra_rules",
+                    missing_in: format!("materials/{}", name),
                     expected: TYPE_HINT_SEQUENCE,
                 });
             }
@@ -440,7 +448,6 @@ fn parse_materials(materials: &Mapping, rules: &Vec<SandRule>, types: &Vec<SandT
             density,
             extra_rules
         };
-        println!("{:?}", mat);
         material_structs.push(mat.clone());
         glsl_structs.push(Box::new(mat));
     }
