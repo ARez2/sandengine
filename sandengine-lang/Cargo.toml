@@ -8,5 +8,6 @@ edition = "2021"
 [dependencies]
 anyhow = "1.0.72"
 colored = "2.0.4"
+regex = "1.9.1"
 serde_yaml = "0.9.24"
 thiserror = "1.0.44"

@@ -2,7 +2,7 @@ use std::str::FromStr;
 
 pub fn run() {
     sandengine_lang::parse();
-    //return;
+    return;
     build_compute_shaders();
     sandengine_core::run();
 }

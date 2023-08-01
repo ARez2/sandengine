@@ -49,19 +49,46 @@ Even though the fragment and vertex shader use OpenGL version 1.4, the compute s
 
 #### Functions
 
-- `swap(Cell first, Cell second)`
+- `SWAP <Cell 1> <Cell 2>` - Swaps both cells
+- `SET <Cell> <Material>` - Replaces the `Cell` with a new cell of that material
 
 
 ### Defining rules
 
 Rules will be processed in the order that they are defined.
 
+TODO: Decide on default value for mirrored
+
 ```yaml
 rules:
     rulename:
         if: <condition>
         do: <action>
-        mirrored: true
+        chance: 0.1
+        mirrored: true # default value: true
+```
+
+```yaml
+if: some condition
+do:
+  - SWAP SELF DOWN
+  - action 2
+else:
+  do:
+    - some other actions
+```
+
+OR
+
+```yaml
+if: some condition
+do:
+  - SWAP SELF DOWN
+  - action 2
+else:
+  if: condition 2
+  do:
+    - some other actions
 ```
 
 #### Examples

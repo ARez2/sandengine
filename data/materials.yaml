@@ -1,35 +1,74 @@
 rules:
   gravity:
-    if: DOWN.density < SELF.density
-    do: SWAP SELF DOWN
+    if: DOWN.mat.density < SELF.mat.density
+    do:
+      - SWAP SELF DOWN
+      - SET SELF vine
     mirrored: false
   slide_diagonally:
-    if: DOWNRIGHT.density < SELF.density
-    do: swap(SELF, DOWNRIGHT)
+    if: RIGHT.mat.density < SELF.mat.density or DOWNRIGHT.mat.density < SELF.mat.density
+    do: SWAP SELF DOWNRIGHT
+    chance: 0.7
     mirrored: true
-
+  slide_left:
+    if: LEFT.mat.density < SELF.mat.density
+    do: SWAP SELF LEFT
+    chance: 0.7
+    mirrored: false
 
 types:
+  empty:
+  solid:
   movable_solid:
     base_rules: [
         gravity,
         slide_diagonally
     ]
-  solid:
-    base_rules: []
+  liquid:
+  gas:
+  plant:
 
 
 
 materials:
-  sand:
-    color: [1, 1, 1, 255]
-    type: movable_solid
-    density: 1.5
-    selectable: true
+  empty:
+    type: empty
+    color: [0, 0, 0, 0]
+    density: 1.0
 
-  glowy_rock:
-    color: [0.196, 0.55, 0.184, 1.0]
-    emission: [0.0, 0.8, 0.1, 1.0]
+  sand:
+    type: movable_solid
+    color: [1, 1, 1]
+    density: 1.5
+  
+  rock:
     type: solid
-    density: 3.0
-    selectable: true
+    color: [0.4, 0.4, 0.4]
+    density: 4.0
+
+  water:
+    type: liquid
+    color: [0.0, 0.0, 1.0, 0.5]
+    density: 1.5
+
+  radioactive:
+    type: solid
+    color: [0.196, 0.55, 0.184]
+    emission: [0.05, 0.7, 0.05, 0.9]
+    density: 5.0
+  
+  smoke:
+    type: gas
+    color: [0.3, 0.3, 0.3, 0.3]
+    density: 0.1
+  
+  toxic_sludge:
+    type: liquid
+    color: [0.0, 0.7, 0.2, 0.5]
+    emission: [0.0, 0.5, 0.0, 0.99999]
+    density: 1.8
+  
+  vine:
+    type: plant
+    color: [0.14, 0.5, 0.19]
+    density: 2.5

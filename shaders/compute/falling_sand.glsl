@@ -10,7 +10,8 @@ layout(local_size_x = 16, local_size_y = 16, local_size_z = 1) in;
 
 #include "directions.glsl"
 #include "math.glsl"
-#include "materials.glsl"
+//#include "materials.glsl"
+#include "gen/materials.glsl"
 #include "cell.glsl"
 #include "material_helpers.glsl"
 
@@ -37,6 +38,7 @@ layout(r32ui, binding = 7) uniform volatile coherent uimage2D image_lock;
 Cell[8] neighbours;
 
 #include "operations.glsl"
+#include "gen/rules.glsl"
 
 
 Cell simulate() {
@@ -64,13 +66,14 @@ Cell simulate() {
     vec4 rand1 = hash43(uvec3(pos_rounded, frame));
     vec4 rand2 = hash43(uvec3(pos_rounded, frame/8));
 
-    if (rand1.x < 0.5) {
+    bool shouldMirror = rand1.x < 0.5;
+    if (shouldMirror) {
         swap(self, right);
         swap(down, downright);
     }
 
 
-
+    applyMirroredRules();
     float ownDensity = self.mat.density;
 
     // The lower, the less likely it will be to fall diagonally, forming higher piles
@@ -121,9 +124,15 @@ Cell simulate() {
     }
 
 
-    if (rand1.x < 0.5) {
+    if (shouldMirror) {
         swap(self, right);
         swap(down, downright);
+    }
+
+    if (!shouldMirror) {
+        applyRightRules(self, right, down, downright);
+    } else {
+        applyLeftRules(self, right, down, downright);
     }
 
     switch (marg_idx) {
