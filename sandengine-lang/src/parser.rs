@@ -2,7 +2,7 @@ use std::{fmt::Debug, path::PathBuf};
 
 use anyhow::{anyhow, bail};
 use thiserror::Error;
-use serde_yaml::{self, Mapping};
+use serde_yaml::{self, Mapping, Value};
 
 use colored::Colorize;
 
@@ -37,7 +37,7 @@ enum ParsingErr<T: Debug> {
 }
 
 
-trait GLSLConvertible {
+pub trait GLSLConvertible {
     fn get_glsl_code(&self) -> String;
 }
 
@@ -61,6 +61,8 @@ impl GLSLConvertible for SandRule {
 
 #[derive(Debug, Clone)]
 pub struct SandType {
+    /// Index/ ID of the type
+    pub id: usize,
     /// Name of the type (Mapping key)
     pub name: String,
     /// Name of the parent type
@@ -71,22 +73,38 @@ pub struct SandType {
 }
 impl GLSLConvertible for SandType {
     fn get_glsl_code(&self) -> String {
-        String::new()
+        format!("#define TYPE_{} {}\n", self.name, self.id)
     }
 }
 
 #[derive(Debug, Clone)]
 pub struct SandMaterial {
+    /// Index/ ID of the material
+    pub id: usize,
     pub name: String,
     pub mattype: String,
     pub color: [f32; 4],
+    pub emission: [f32; 4],
     pub selectable: bool,
     pub density: f32,
     pub extra_rules: Vec<String>
 }
 impl GLSLConvertible for SandMaterial {
     fn get_glsl_code(&self) -> String {
-        String::new()
+        format!("#define MAT_{} Material({}, vec4({}, {}, {}, {}), {}, vec4({}, {}, {}, {}), TYPE_{})\n",
+            self.name,
+            self.id,
+            self.color[0],
+            self.color[1],
+            self.color[2],
+            self.color[3],
+            self.density,
+            self.emission[0],
+            self.emission[1],
+            self.emission[2],
+            self.emission[3],
+            self.mattype,
+        )
     }
 }
 
@@ -100,7 +118,11 @@ pub struct ParsingResult {
 
 
 pub fn parse_string(f: String) -> anyhow::Result<ParsingResult> {
-    let data: serde_yaml::Value = serde_yaml::from_str(&f).unwrap();
+    let data: Result<_, serde_yaml::Error> = serde_yaml::from_str(&f);
+    if let Err(err) = data {
+        bail!(err);
+    }
+    let data: serde_yaml::Value = data.unwrap();
 
     let mut data_serialized: Vec<Box<dyn GLSLConvertible>> = vec![];
     let mut rules: Vec<SandRule> = vec![];
@@ -215,6 +237,7 @@ fn parse_types(types: &Mapping, rules: &Vec<SandRule>) -> anyhow::Result<(Vec<Sa
     let mut type_structs: Vec<SandType> = vec![];
     let mut glsl_structs: Vec<Box<dyn GLSLConvertible>> = vec![];
     
+    let mut idx = 0;
     for sandtype in types {
         let name = sandtype.0.as_str()
             .ok_or(anyhow!(ParsingErr::InvalidType {
@@ -279,12 +302,15 @@ fn parse_types(types: &Mapping, rules: &Vec<SandRule>) -> anyhow::Result<(Vec<Sa
         };
 
         let s_type = SandType {
+            id: idx,
             name,
             inherits: parent,
             base_rules
         };
         type_structs.push(s_type.clone());
         glsl_structs.push(Box::new(s_type));
+
+        idx += 1;
     }
     
     Ok((type_structs, glsl_structs))
@@ -295,6 +321,7 @@ fn parse_materials(materials: &Mapping, rules: &Vec<SandRule>, types: &Vec<SandT
     let mut material_structs: Vec<SandMaterial> = vec![];
     let mut glsl_structs: Vec<Box<dyn GLSLConvertible>> = vec![];
 
+    let mut idx = 0;
     for mat in materials {
         let name = mat.0.as_str()
             .ok_or(anyhow!(ParsingErr::InvalidType {
@@ -330,44 +357,8 @@ fn parse_materials(materials: &Mapping, rules: &Vec<SandRule>, types: &Vec<SandT
             });
         }
 
-        let mut color = [1.0, 0.0, 1.0, 1.0];
-        let color_val = mat.1.get("color")
-            .ok_or(anyhow!(ParsingErr::<bool>::MissingField {
-                field_name: "color".to_string(),
-                missing_in: format!("materials/{}", name),
-            }))?;
-        // TODO: Add alternative HEX color definition
-        if let Some(col) = color_val.as_sequence() {
-            if col.is_empty() || col.len() > 4 || col.len() < 3 {
-                bail!(ParsingErr::InvalidType {
-                    wrong_type: "color",
-                    missing_in: format!("materials/{}", name),
-                    expected: TYPE_HINT_COLOR,
-                });
-            }
-            for (idx, comp) in col.iter().enumerate() {
-                if let Some(comp) = comp.as_f64() {
-                    if comp > 1.0 && comp <= 255.0 {
-                        color[idx] = comp as f32 / 255.0;
-                        continue;
-                    } else if comp >= 0.0 && comp <= 1.0 {
-                        color[idx] = comp as f32;
-                        continue;
-                    }
-                }
-                if let Some(comp) = comp.as_u64() {
-                    if comp > 0 && comp <= 255 {
-                        color[idx] = comp as f32 / 255.0;
-                        continue;
-                    }
-                }
-                bail!(ParsingErr::InvalidType {
-                    wrong_type: "color",
-                    missing_in: format!("materials/{}", name),
-                    expected: TYPE_HINT_COLOR
-                });
-            }
-        }
+        let color = extract_vec4(mat.1, name.clone(), "color", [1.0, 0.0, 1.0, 1.0], true)?;
+        let emission = extract_vec4(mat.1, name.clone(), "emission", [0.0, 0.0, 0.0, 0.0], false)?;
 
         let selectable = match mat.1.get("selectable") {
             Some(selectable) => {
@@ -422,17 +413,82 @@ fn parse_materials(materials: &Mapping, rules: &Vec<SandRule>, types: &Vec<SandT
         }
         
         let mat = SandMaterial {
+            id: idx,
             name,
             mattype,
             color,
+            emission,
             selectable,
             density,
             extra_rules
         };
         material_structs.push(mat.clone());
         glsl_structs.push(Box::new(mat));
+
+        idx += 1;
     }
 
     
     Ok((material_structs, glsl_structs))
+}
+
+
+fn extract_vec4(yaml_data: &Value, parent_name: String, field_name: &'static str, default: [f32; 4], mandatory: bool) -> anyhow::Result<[f32; 4]> {
+    let missing_in = format!("materials/{}/{}", parent_name, field_name);
+    let vec4_data = yaml_data.get(field_name);
+
+    if vec4_data.is_none() {
+        if mandatory {
+            bail!(ParsingErr::<bool>::MissingField {
+                field_name: field_name.to_string(),
+                missing_in,
+            });
+        } else {
+            return Ok(default);
+        }
+    };
+
+    let vec4_val = vec4_data.unwrap();
+    
+    let mut vec4 = default;
+    // TODO: Add alternative HEX color definition
+    if let Some(comps) = vec4_val.as_sequence() {
+        if comps.is_empty() || comps.len() > 4 || comps.len() < 3 {
+            bail!(ParsingErr::InvalidType {
+                wrong_type: field_name,
+                missing_in,
+                expected: TYPE_HINT_COLOR,
+            });
+        }
+        for (idx, comp) in comps.iter().enumerate() {
+            if let Some(comp) = comp.as_u64() {
+                if comp > 0 && comp <= 255 {
+                    vec4[idx] = comp as f32 / 255.0;
+                    continue;
+                }
+            }
+            if let Some(comp) = comp.as_f64() {
+                if comp > 1.0 && comp <= 255.0 {
+                    vec4[idx] = comp as f32 / 255.0;
+                    continue;
+                } else if comp >= 0.0 && comp <= 1.0 {
+                    vec4[idx] = comp as f32;
+                    continue;
+                }
+            }
+            
+            bail!(ParsingErr::InvalidType {
+                wrong_type: field_name,
+                missing_in,
+                expected: TYPE_HINT_COLOR
+            });
+        };
+    } else {
+        bail!(ParsingErr::InvalidType {
+            wrong_type: field_name,
+            missing_in,
+            expected: TYPE_HINT_COLOR
+        });
+    }
+    Ok(vec4)
 }

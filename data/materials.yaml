@@ -15,11 +15,21 @@ types:
         gravity,
         slide_diagonally
     ]
+  solid:
+    base_rules: []
+
 
 
 materials:
   sand:
-    color: [1.0, 1.0, 0.0, 1.0]
+    color: [1, 1, 1, 255]
     type: movable_solid
     density: 1.5
+    selectable: true
+
+  glowy_rock:
+    color: [0.196, 0.55, 0.184, 1.0]
+    emission: [0.0, 0.8, 0.1, 1.0]
+    type: solid
+    density: 3.0
     selectable: true

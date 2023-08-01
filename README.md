@@ -125,6 +125,7 @@ This would evaluate to
 materials:
     materialname:
         color: [1.0, 0.5, 0.0, 1.0]
+        emission: [0.0, 0.0, 0.0, 0.0] # all values zero mean no emission
         type: <type> # By specifying a type, this material inherits all rules of the base type
         selectable: true
         density: 2.2
@@ -138,7 +139,8 @@ materials:
 ```yaml
 materials:
     lava:
-        color: [0.9, 0.2, 0.1, 1.0],
+        color: [0.9, 0.2, 0.1, 1.0]
+        emission: [1.0, 0.0, 0.0, 1.0]
         type: liquid
         selectable: true
         density: 1.2
