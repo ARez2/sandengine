@@ -27,6 +27,20 @@ types:
   liquid:
   gas:
   plant:
+  type0:
+    base_rules: [
+      gravity,
+    ]
+  type1:
+    inherits: type0
+    base_rules: [
+      slide_diagonally
+    ]
+  type2:
+    inherits: type1
+    base_rules: [
+      slide_left
+    ]
 
 
 

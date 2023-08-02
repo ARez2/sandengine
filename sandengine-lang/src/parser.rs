@@ -105,7 +105,9 @@ pub struct SandType {
     pub inherits: String,
     /// List of names of the rules that are applied to all
     /// materials of this type
-    pub base_rules: Vec<String>
+    pub base_rules: Vec<String>,
+    /// All accumulated rules, including parent rules
+    pub accum_rules: Vec<String>
 }
 impl GLSLConvertible for SandType {
     fn get_glsl_code(&self) -> String {
@@ -115,6 +117,7 @@ impl GLSLConvertible for SandType {
 
 
 // TODO: Check if certain material is the material with extra_rules, then apply those
+// TODO: Procedually generate is<Material>() functions for that
 
 #[derive(Debug, Clone)]
 pub struct SandMaterial {
@@ -380,6 +383,7 @@ fn parse_types(types: &Mapping, rules: &Vec<SandRule>) -> anyhow::Result<(Vec<Sa
                 expected: TYPE_HINT_STRING
             }))?
             .to_string();
+        let mut accum_rules = vec![];
         let inherits = sandtype.1.get("inherits");
         let mut parent = String::new();
         if let Some(p) = inherits {
@@ -391,6 +395,7 @@ fn parse_types(types: &Mapping, rules: &Vec<SandRule>) -> anyhow::Result<(Vec<Sa
             for t in type_structs.iter() {
                 if t.name == parent_str {
                     parent = parent_str.to_string();
+                    accum_rules = get_accum_rules(&type_structs, t);
                 }
             }
             if parent.is_empty() {
@@ -415,6 +420,7 @@ fn parse_types(types: &Mapping, rules: &Vec<SandRule>) -> anyhow::Result<(Vec<Sa
                     for r in rules {
                         if r.name == rulename {
                             base_rules.push(rulename.to_string());
+                            accum_rules.push(rulename.to_string());
                             rule_valid = true;
                             break;
                         }
@@ -439,7 +445,8 @@ fn parse_types(types: &Mapping, rules: &Vec<SandRule>) -> anyhow::Result<(Vec<Sa
             id: idx,
             name,
             inherits: parent,
-            base_rules
+            base_rules,
+            accum_rules
         };
         type_structs.push(s_type.clone());
         glsl_structs.push(Box::new(s_type));
@@ -448,6 +455,23 @@ fn parse_types(types: &Mapping, rules: &Vec<SandRule>) -> anyhow::Result<(Vec<Sa
     }
     
     Ok((type_structs, glsl_structs))
+}
+
+
+fn get_accum_rules(all_types: &Vec<SandType>, current_type: &SandType) -> Vec<String> {
+    if !current_type.inherits.is_empty() {
+        for t in all_types {
+            if t.name == current_type.inherits {
+                let mut parent_rules = get_accum_rules(all_types, t);
+                let mut r = current_type.base_rules.clone();
+                r.append(&mut parent_rules);
+                return r;
+            }
+        }
+        return vec![];
+    } else {
+        return current_type.base_rules.clone();
+    }
 }
 
 

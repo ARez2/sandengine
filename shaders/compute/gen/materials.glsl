@@ -12,6 +12,9 @@ struct Material {
 #define TYPE_liquid 3
 #define TYPE_gas 4
 #define TYPE_plant 5
+#define TYPE_type0 6
+#define TYPE_type1 7
+#define TYPE_type2 8
 
 #define MAT_empty Material(0, vec4(0, 0, 0, 0), 1, vec4(0, 0, 0, 0), TYPE_empty)
 #define MAT_sand Material(1, vec4(0.003921569, 0.003921569, 0.003921569, 1), 1.5, vec4(0, 0, 0, 0), TYPE_movable_solid)
