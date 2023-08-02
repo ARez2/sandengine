@@ -1,13 +1,20 @@
+#define TYPE_empty 0
 
-// ======== MANDATORY, DEFAULT MATERIALS AND TYPES, DONT CHANGE ========
-#define TYPE_NULL 0
-#define TYPE_WALL 1
-#define TYPE_EMPTY 2
-#define MAT_NULL Material(0, vec4(1.0, 0.0, 1.0, 1.0), 0.0,  vec4(0.0), TYPE_NULL)
-#define MAT_WALL Material(1, vec4(0.1, 0.1, 0.1, 1.0), 9999.0, vec4(0.0), TYPE_WALL)
-#define MAT_EMPTY Material(2, vec4(0.0), 1.0, vec4(0.0), TYPE_EMPTY)
+bool isType_empty(Cell cell) {
+    return cell.mat.type == TYPE_empty;
+}
 
-// =====================================================================
+#define TYPE_null 1
+
+bool isType_null(Cell cell) {
+    return cell.mat.type == TYPE_null;
+}
+
+#define TYPE_wall 2
+
+bool isType_wall(Cell cell) {
+    return cell.mat.type == TYPE_wall;
+}
 
 #define TYPE_solid 3
 
@@ -40,6 +47,9 @@ bool isType_plant(Cell cell) {
 }
 
 
+#define MAT_EMPTY Material(0, vec4(0, 0, 0, 0), 1, vec4(0, 0, 0, 0), TYPE_empty)
+#define MAT_NULL Material(1, vec4(1, 0, 1, 1), 0, vec4(0, 0, 0, 0), TYPE_null)
+#define MAT_WALL Material(2, vec4(0, 0, 0, 0), 0, vec4(0, 0, 0, 0), TYPE_wall)
 #define MAT_sand Material(3, vec4(1, 1, 0, 1), 1.5, vec4(0, 0, 0, 0), TYPE_movable_solid)
 #define MAT_rock Material(4, vec4(0.4, 0.4, 0.4, 1), 4, vec4(0, 0, 0, 0), TYPE_solid)
 #define MAT_water Material(5, vec4(0, 0, 1, 0.5), 1.5, vec4(0, 0, 0, 0), TYPE_liquid)
@@ -47,9 +57,12 @@ bool isType_plant(Cell cell) {
 #define MAT_smoke Material(7, vec4(0.3, 0.3, 0.3, 0.3), 0.1, vec4(0, 0, 0, 0), TYPE_gas)
 #define MAT_toxic_sludge Material(8, vec4(0, 0.7, 0.2, 0.5), 1.8, vec4(0, 0.5, 0, 0.99999), TYPE_liquid)
 
-Material[6] materials() {
-    Material allMaterials[6] = {
-        MAT_sand,
+Material[9] materials() {
+    Material allMaterials[9] = {
+        MAT_EMPTY,
+MAT_NULL,
+MAT_WALL,
+MAT_sand,
 MAT_rock,
 MAT_water,
 MAT_radioactive,

@@ -1,4 +1,4 @@
-use std::{fmt::Debug, path::PathBuf};
+use std::{fmt::Debug, path::PathBuf, default::{self, Default}};
 
 use anyhow::{anyhow, bail};
 use thiserror::Error;
@@ -122,7 +122,7 @@ impl GLSLConvertible for SandRule {
 }
 
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub struct SandType {
     /// Index/ ID of the type
     pub id: usize,
@@ -307,9 +307,6 @@ fn parse_rules(rules: &Mapping, material_names: Vec<String>) -> anyhow::Result<(
 }
 
 
-
-
-
 fn parse_conditionals(parent: &Value, parent_is_else: bool, parent_path: String, if_conds: &mut Vec<String>, do_actions: &mut Vec<String>, material_names: &Vec<String>) -> anyhow::Result<()> {
     let if_cond = parent.get("if");
 
@@ -462,11 +459,31 @@ fn parse_do(parent: &str, do_str: &str) -> anyhow::Result<String> {
 
 
 fn parse_types(types: &Mapping, rules: &mut Vec<SandRule>) -> anyhow::Result<(Vec<SandType>, Vec<Box<dyn GLSLConvertible>>)> {
-    let mut type_structs: Vec<SandType> = vec![];
-    let mut glsl_structs: Vec<Box<dyn GLSLConvertible>> = vec![];
+    let mut type_structs: Vec<SandType> = vec![
+        SandType {
+            id: 0,
+            name: String::from("empty"),
+            ..Default::default()
+        },
+        SandType {
+            id: 1,
+            name: String::from("null"),
+            ..Default::default()
+        },
+        SandType {
+            id: 2,
+            name: String::from("wall"),
+            ..Default::default()
+        },
+    ];
+    let mut glsl_structs: Vec<Box<dyn GLSLConvertible>> = vec![
+        Box::new(type_structs[0].clone()),
+        Box::new(type_structs[1].clone()),
+        Box::new(type_structs[2].clone())
+    ];
     
     // Index is 3 because of the 3 default types
-    let mut idx = 3;
+    let mut idx = type_structs.len();
     for sandtype in types {
         let name = sandtype.0.as_str()
             .ok_or(anyhow!(ParsingErr::InvalidType {
@@ -612,11 +629,46 @@ fn parse_material_names(materials: &Mapping) -> anyhow::Result<Vec<String>> {
 
 
 fn parse_materials(materials: &Mapping, rules: &mut Vec<SandRule>, types: &Vec<SandType>) -> anyhow::Result<(Vec<SandMaterial>, Vec<Box<dyn GLSLConvertible>>)> {
-    let mut material_structs: Vec<SandMaterial> = vec![];
-    let mut glsl_structs: Vec<Box<dyn GLSLConvertible>> = vec![];
+    let mut material_structs: Vec<SandMaterial> = vec![
+        SandMaterial {
+            id: 0,
+            name: String::from("EMPTY"),
+            mattype: String::from("empty"),
+            color: [0.0, 0.0, 0.0, 0.0],
+            emission: [0.0, 0.0, 0.0, 0.0],
+            selectable: true,
+            density: 1.0,
+            ..Default::default()
+        },
+        SandMaterial {
+            id: 1,
+            name: String::from("NULL"),
+            mattype: String::from("null"),
+            color: [1.0, 0.0, 1.0, 1.0],
+            emission: [0.0, 0.0, 0.0, 0.0],
+            selectable: false,
+            density: 0.0,
+            ..Default::default()
+        },
+        SandMaterial {
+            id: 2,
+            name: String::from("WALL"),
+            mattype: String::from("wall"),
+            color: [0.0, 0.0, 0.0, 0.0],
+            emission: [0.0, 0.0, 0.0, 0.0],
+            selectable: false,
+            density: 0.0,
+            ..Default::default()
+        },
+    ];
+    let mut glsl_structs: Vec<Box<dyn GLSLConvertible>> = vec![
+        Box::new(material_structs[0].clone()),
+        Box::new(material_structs[1].clone()),
+        Box::new(material_structs[2].clone()),
+    ];
 
     // Index is 3 because of the 3 default materials
-    let mut idx = 3;
+    let mut idx = material_structs.len();
     for mat in materials {
         let name = mat.0.as_str()
             .ok_or(anyhow!(ParsingErr::InvalidType {

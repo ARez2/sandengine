@@ -18,16 +18,7 @@ pub fn create_glsl_from_parser(result: &ParsingResult) {
     let cwd = std::env::current_dir().unwrap();
 
     // ========== Create materials.glsl which contains materials and types ==========
-    let mut materials_types = String::from("
-// ======== MANDATORY, DEFAULT MATERIALS AND TYPES, DONT CHANGE ========
-#define TYPE_NULL 0
-#define TYPE_WALL 1
-#define TYPE_EMPTY 2
-#define MAT_NULL Material(0, vec4(1.0, 0.0, 1.0, 1.0), 0.0,  vec4(0.0), TYPE_NULL)
-#define MAT_WALL Material(1, vec4(0.1, 0.1, 0.1, 1.0), 9999.0, vec4(0.0), TYPE_WALL)
-#define MAT_EMPTY Material(2, vec4(0.0), 1.0, vec4(0.0), TYPE_EMPTY)
-
-// =====================================================================\n\n");
+    let mut materials_types = String::from("");
 
     for t in result.types.iter() {
         materials_types.push_str(t.get_glsl_code().as_str());

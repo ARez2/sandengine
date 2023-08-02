@@ -53,6 +53,13 @@ Even though the fragment and vertex shader use OpenGL version 1.4, the compute s
 - `SET <Cell> <Material>` - Replaces the `Cell` with a new cell of that material
 
 
+#### Materials
+
+- `EMPTY` - The air/ empty value for a cell
+- `NULL` - The value that is returned if its nothing else
+- `WALL` - The material just outside the screen
+
+
 ### Defining rules
 
 Rules will be processed in the order that they are defined.

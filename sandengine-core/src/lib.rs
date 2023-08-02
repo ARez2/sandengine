@@ -9,6 +9,7 @@ use glium::{
     glutin::{self, event::WindowEvent, event::Event},
 };
 pub mod simulation;
+use sandengine_lang::parser::SandMaterial;
 use simulation::Simulation;
 pub mod renderer;
 use renderer::{Renderer, TextureDrawMode};
@@ -24,6 +25,15 @@ use physics::Physics;
 // TODO: make a texture for input. All pixels on that will be setCell'ed and then cleared.
 
 pub fn run(parsing_result: sandengine_lang::parser::ParsingResult) {
+    let selectable_materials: Vec<SandMaterial> = parsing_result.materials.iter().filter_map(|m| {
+        if m.selectable {
+            Some(m.clone())
+        } else {
+            None
+        }
+    }).collect();
+
+
     let size = (640, 480);
     //let size = (1920, 1080);
     let event_loop = glium::glutin::event_loop::EventLoop::new();
@@ -82,7 +92,9 @@ pub fn run(parsing_result: sandengine_lang::parser::ParsingResult) {
                                 VirtualKeyCode::Key9 => 9,
                                 _ => 0,
                             };
-                            sim.params.brushMaterial = parsing_result.materials[idx].clone();
+                            if idx > 0 && idx < selectable_materials.len() {
+                                sim.params.brushMaterial = selectable_materials[idx].clone();
+                            };
                         }
                     },
                     WindowEvent::CursorMoved {position, ..} => {
