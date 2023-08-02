@@ -9,7 +9,7 @@ pub fn run() {
         Ok(result) => {
             // println!("{}{:#?}", "Rules: ".bold(), result.rules);
             // println!("{}{:#?}", "Types: ".bold(), result.types);
-            println!("{}{:#?}", "Materials: ".bold(), result.materials);
+            // println!("{}{:#?}", "Materials: ".bold(), result.materials);
             println!("{}", "[sandengine-lang]: Parsing ok.".green().bold());
             sandengine_lang::create_glsl_from_parser(&result);
             

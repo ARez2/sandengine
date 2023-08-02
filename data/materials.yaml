@@ -1,24 +1,4 @@
 rules:
-  gravity:
-    if: DOWN.mat.density < SELF.mat.density
-    do:
-      - SWAP SELF DOWN
-    mirrored: true
-  slide_diagonally:
-    if: RIGHT.mat.density < SELF.mat.density or DOWNRIGHT.mat.density < SELF.mat.density
-    do: SWAP SELF DOWNRIGHT
-    chance: 0.7
-    mirrored: true
-  slide_left:
-    if: LEFT.mat.density < SELF.mat.density
-    do: SWAP SELF LEFT
-    chance: 0.7
-    mirrored: false
-  vine_rule:
-    if: SELF.mat == empty && DOWN.mat == vine
-    do: SET SELF vine
-    mirrored: false
-    chance: 0.01
   fall_slide:
     if: DOWN.mat.density < SELF.mat.density
     do:

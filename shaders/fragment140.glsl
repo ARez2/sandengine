@@ -61,12 +61,23 @@ void main() {
     vec4 light = texture(light_tex, v_tex_coords);
     
     // Occlude ambient color but subtract light
+    
+    //float pixelate = sqrt(tex_size.x*tex_size.y);
+    float pixelate = tex_size.x / 2;
+    float d = 1.0 / pixelate;
+	float ar = tex_size.x / tex_size.y;
+    vec2 pixelated_uv = floor(v_tex_coords / d) * d;
 
-    vec3 occ = 1.0 - vec3(sampleBlurred(color_tex, v_tex_coords, 16.0, 0.5).a);
+    vec3 occ = 1.0 - vec3(sampleBlurred(color_tex, pixelated_uv, 1.0, 0.5).a);
+    vec3 occ2 = 1.0 - vec3(sampleBlurred(color_tex, pixelated_uv, 8.0, 0.35).a);
+    vec3 occ3 = 1.0 - vec3(sampleBlurred(color_tex, pixelated_uv, 16.0, 0.2).a);
+    occ += occ2 * 0.5 + occ3 * 0.75;
     occ = clamp(occ, vec3(0.0), vec3(1.0));
 
-    float ambientCol = 0.05;
-    vec3 ambient = vec3(0.5, 0.5, 0.5) * (1.0 - v_tex_coords.y);
+    float ambientCol = 0.01;
+    vec3 ambient = vec3(0.5, 0.5, 0.5) * (1.0 - pixelated_uv.y);
+
+    
     
     col.rgb *= ambientCol + occ * (1.0 - ambientCol);
     // if (col.rgb == vec3(0.0)) {

@@ -32,6 +32,7 @@ pub fn run(parsing_result: sandengine_lang::parser::ParsingResult) {
             None
         }
     }).collect();
+    println!("Selectable: {:?}", selectable_materials);
 
 
     let size = (640, 480);
@@ -92,7 +93,7 @@ pub fn run(parsing_result: sandengine_lang::parser::ParsingResult) {
                                 VirtualKeyCode::Key9 => 9,
                                 _ => 0,
                             };
-                            if idx > 0 && idx < selectable_materials.len() {
+                            if idx < selectable_materials.len() {
                                 sim.params.brushMaterial = selectable_materials[idx].clone();
                             };
                         }
