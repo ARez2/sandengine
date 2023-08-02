@@ -153,7 +153,7 @@ bool isType_{}(Cell cell) {{
 }
 
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub struct SandMaterial {
     /// Index/ ID of the material
     pub id: usize,

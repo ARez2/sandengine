@@ -17,15 +17,13 @@ use physics::Physics;
 
 
 
-
-
 // One texture for collision:
 // each pixel holds a normalized coordinate of a collision point. If the pixel value is vec4(0.0) this means nothing/ gap
 // once the next line of coordinates starts until the next vec4(0.0) means one collision island
 
 // TODO: make a texture for input. All pixels on that will be setCell'ed and then cleared.
 
-pub fn run() {
+pub fn run(parsing_result: sandengine_lang::parser::ParsingResult) {
     let size = (640, 480);
     //let size = (1920, 1080);
     let event_loop = glium::glutin::event_loop::EventLoop::new();
@@ -71,17 +69,20 @@ pub fn run() {
                 if let Event::WindowEvent {event, .. } = event { match event {
                     WindowEvent::KeyboardInput { input, .. } => {
                         if let Some(code) = input.virtual_keycode {
-                            match code {
-                                VirtualKeyCode::Key0 => sim.params.brushMaterial = 0,
-                                VirtualKeyCode::Key1 => sim.params.brushMaterial = 1,
-                                VirtualKeyCode::Key2 => sim.params.brushMaterial = 2,
-                                VirtualKeyCode::Key3 => sim.params.brushMaterial = 3,
-                                VirtualKeyCode::Key4 => sim.params.brushMaterial = 6,
-                                VirtualKeyCode::Key5 => sim.params.brushMaterial = 7,
-                                VirtualKeyCode::Key6 => sim.params.brushMaterial = 8,
-                                VirtualKeyCode::Key7 => sim.params.brushMaterial = 9,
-                                _ => (),
+                            let idx = match code {
+                                VirtualKeyCode::Key0 => 0,
+                                VirtualKeyCode::Key1 => 1,
+                                VirtualKeyCode::Key2 => 2,
+                                VirtualKeyCode::Key3 => 3,
+                                VirtualKeyCode::Key4 => 4,
+                                VirtualKeyCode::Key5 => 5,
+                                VirtualKeyCode::Key6 => 6,
+                                VirtualKeyCode::Key7 => 7,
+                                VirtualKeyCode::Key8 => 8,
+                                VirtualKeyCode::Key9 => 9,
+                                _ => 0,
                             };
+                            sim.params.brushMaterial = parsing_result.materials[idx].clone();
                         }
                     },
                     WindowEvent::CursorMoved {position, ..} => {

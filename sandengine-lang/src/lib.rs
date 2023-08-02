@@ -1,26 +1,24 @@
 pub mod parser;
 use colored::Colorize;
-use parser::{parse_string, GLSLConvertible};
+use parser::{parse_string, GLSLConvertible, ParsingResult};
 
 // TODO: Create a validator function (extra file) that checks every if/ do condition??
 
 
-pub fn parse() {
+pub fn parse() -> anyhow::Result<ParsingResult> {
     let cwd = std::env::current_dir().unwrap();
     let filepath = cwd.join("data")
         .join("materials.yaml");
     let f = std::fs::read_to_string(filepath).unwrap();
-    let parse_res = parse_string(f);
-    // TODO: Move result conversion into GLSL into separate function or file w/ function
-    match parse_res {
-        Ok(result) => {
-            // println!("{}{:#?}", "Rules: ".bold(), result.rules);
-            // println!("{}{:#?}", "Types: ".bold(), result.types);
-            // println!("{}{:#?}", "Materials: ".bold(), result.materials);
-            println!("{}", "[sandengine-lang]: Parsing ok.".green().bold());
+    parse_string(f)
+}
 
-            // ========== Create materials.glsl which contains materials and types ==========
-            let mut materials_types = String::from("
+
+pub fn create_glsl_from_parser(result: &ParsingResult) {
+    let cwd = std::env::current_dir().unwrap();
+
+    // ========== Create materials.glsl which contains materials and types ==========
+    let mut materials_types = String::from("
 // ======== MANDATORY, DEFAULT MATERIALS AND TYPES, DONT CHANGE ========
 #define TYPE_NULL 0
 #define TYPE_WALL 1
@@ -31,17 +29,17 @@ pub fn parse() {
 
 // =====================================================================\n\n");
 
-            for t in result.types {
-                materials_types.push_str(t.get_glsl_code().as_str());
-            };
-            materials_types.push('\n');
-            let mut all_mats_list = String::new();
-            for m in result.materials.iter() {
-                materials_types.push_str(m.get_glsl_code().as_str());
-                all_mats_list.push_str(format!("MAT_{},\n", m.name.clone()).as_str());
-            };
+    for t in result.types.iter() {
+        materials_types.push_str(t.get_glsl_code().as_str());
+    };
+    materials_types.push('\n');
+    let mut all_mats_list = String::new();
+    for m in result.materials.iter() {
+        materials_types.push_str(m.get_glsl_code().as_str());
+        all_mats_list.push_str(format!("MAT_{},\n", m.name.clone()).as_str());
+    };
 
-            let helpers_functions = format!("
+    let helpers_functions = format!("
 Material[{}] materials() {{
     Material allMaterials[{}] = {{
         {}
@@ -58,46 +56,46 @@ Material getMaterialFromID(int id) {{
     return MAT_NULL;
 }}\n\n", result.materials.len(), result.materials.len(), all_mats_list);
 
-            materials_types.push_str(helpers_functions.as_str());
+    materials_types.push_str(helpers_functions.as_str());
 
-            let path = cwd
-                .join("shaders")
-                .join("compute")
-                .join("gen")
-                .join("materials.glsl");
-            let res = std::fs::write(path.clone(), materials_types);
-            if let Err(err) = res {
-                println!("{} Err creating file '{}': '{}'", "[sandengine-lang]:".red().bold(), path.display(), err);
-            };
+    let path = cwd
+        .join("shaders")
+        .join("compute")
+        .join("gen")
+        .join("materials.glsl");
+    let res = std::fs::write(path.clone(), materials_types);
+    if let Err(err) = res {
+        println!("{} Err creating file '{}': '{}'", "[sandengine-lang]:".red().bold(), path.display(), err);
+    };
 
-            // ========== Create rules.glsl which contains all rules and rule callers ==========
-            let mut rule_functions = String::new();
-            let mut mirrored_rules_call = String::new();
-            let mut left_rules_call = String::new();
-            let mut right_rules_call = String::new();
+    // ========== Create rules.glsl which contains all rules and rule callers ==========
+    let mut rule_functions = String::new();
+    let mut mirrored_rules_call = String::new();
+    let mut left_rules_call = String::new();
+    let mut right_rules_call = String::new();
 
-            result.rules.iter().for_each(|r| {
-                if r.used {
-                    rule_functions.push_str(format!("{}\n\n", r.get_glsl_code()).as_str());
-                    match r.ruletype {
-                        parser::SandRuleType::Mirrored => {
-                            mirrored_rules_call.push_str(format!("rule_{}(self, right, down, downright, pos);\n", r.name).as_str());
-                        },
-                        parser::SandRuleType::Left => {
-                            left_rules_call.push_str(format!("rule_{}(self, left, down, downright, pos);\n", r.name).as_str());
-                        },
-                        parser::SandRuleType::Right => {
-                            right_rules_call.push_str(format!("rule_{}(self, right, down, downright, pos);\n", r.name).as_str());
-                        }
-                    };
+    result.rules.iter().for_each(|r| {
+        if r.used {
+            rule_functions.push_str(format!("{}\n\n", r.get_glsl_code()).as_str());
+            match r.ruletype {
+                parser::SandRuleType::Mirrored => {
+                    mirrored_rules_call.push_str(format!("rule_{}(self, right, down, downright, pos);\n", r.name).as_str());
+                },
+                parser::SandRuleType::Left => {
+                    left_rules_call.push_str(format!("rule_{}(self, left, down, downright, pos);\n", r.name).as_str());
+                },
+                parser::SandRuleType::Right => {
+                    right_rules_call.push_str(format!("rule_{}(self, right, down, downright, pos);\n", r.name).as_str());
                 }
-            });
-            let path = cwd
-                .join("shaders")
-                .join("compute")
-                .join("gen")
-                .join("rules.glsl");
-            let mut rulefile_content = format!(
+            };
+        }
+    });
+    let path = cwd
+        .join("shaders")
+        .join("compute")
+        .join("gen")
+        .join("rules.glsl");
+    let mut rulefile_content = format!(
 "
 // =============== RULES ===============
 {}
@@ -132,13 +130,8 @@ void applyRightRules(
     {}
 }}", rule_functions, mirrored_rules_call.trim_end(), left_rules_call.trim_end(), right_rules_call.trim_end());
 
-            let res = std::fs::write(path.clone(), rulefile_content);
-            if let Err(err) = res {
-                println!("{} Err creating file '{}': '{}'", "[sandengine-lang]:".red().bold(), path.display(), err);
-            };
-        },
-        Err(err) => {
-            println!("{} {}", "[sandengine-lang]:".red().bold(), err);
-        }
-    }
+    let res = std::fs::write(path.clone(), rulefile_content);
+    if let Err(err) = res {
+        println!("{} Err creating file '{}': '{}'", "[sandengine-lang]:".red().bold(), path.display(), err);
+    };
 }

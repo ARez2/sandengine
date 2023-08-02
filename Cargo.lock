@@ -1652,6 +1652,7 @@ dependencies = [
 name = "sandengine"
 version = "0.1.0"
 dependencies = [
+ "colored",
  "sandengine-core",
  "sandengine-lang",
 ]
@@ -1668,6 +1669,7 @@ dependencies = [
  "nphysics2d",
  "rand",
  "rayon",
+ "sandengine-lang",
 ]
 
 [[package]]

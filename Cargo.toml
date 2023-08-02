@@ -16,5 +16,6 @@ exclude = [
 ]
 
 [dependencies]
+colored = "2.0.4"
 sandengine-core = {path = "sandengine-core"}
 sandengine-lang = {path = "sandengine-lang"}

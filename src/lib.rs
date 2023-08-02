@@ -1,9 +1,25 @@
 use std::str::FromStr;
+use colored::Colorize;
+
+pub extern crate sandengine_lang;
 
 pub fn run() {
-    sandengine_lang::parse();
-    build_compute_shaders();
-    sandengine_core::run();
+    let parse_res = sandengine_lang::parse();
+    match parse_res {
+        Ok(result) => {
+            // println!("{}{:#?}", "Rules: ".bold(), result.rules);
+            // println!("{}{:#?}", "Types: ".bold(), result.types);
+            // println!("{}{:#?}", "Materials: ".bold(), result.materials);
+            println!("{}", "[sandengine-lang]: Parsing ok.".green().bold());
+            sandengine_lang::create_glsl_from_parser(&result);
+            
+            build_compute_shaders();
+            sandengine_core::run(result);
+        },
+        Err(err) => {
+            println!("{} {}", "[sandengine-lang]:".red().bold(), err);
+        }
+    };
 }
 
 

@@ -1,17 +1,17 @@
 use glium::{texture::{self, RawImage2d}, uniforms, Surface};
 use rand::Rng;
-
+use sandengine_lang::parser::SandMaterial;
 
 
 #[repr(C)]
-#[derive(Copy, Clone, Default)]
+#[derive(Clone, Default)]
 #[allow(non_snake_case)]
 pub struct Params {
     pub moveRight: bool,
     pub mousePos: (f32, f32),
     pub mousePressed: bool,
     pub brushSize: u32,
-    pub brushMaterial: i32,
+    pub brushMaterial: SandMaterial,
     pub time: f32,
     pub frame: i32,
 }
@@ -21,7 +21,7 @@ impl Params {
             moveRight: true,
             mousePos: (0.0, 0.0),
             brushSize: 5,
-            brushMaterial: 0,
+            brushMaterial: SandMaterial::default(),
             mousePressed: false,
             frame: 0,
             ..Default::default()
@@ -115,7 +115,7 @@ impl Simulation {
                 moveRight: self.params.moveRight,
                 mousePos: self.params.mousePos,
                 brushSize: self.params.brushSize * self.params.mousePressed as u32,
-                brushMaterial: self.params.brushMaterial,
+                brushMaterial: self.params.brushMaterial.id as i32,
                 time: self.params.time,
                 simSize: (self.size.0 as i32, self.size.1 as i32),
                 frame: self.params.frame,
