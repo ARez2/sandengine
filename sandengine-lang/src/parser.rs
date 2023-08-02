@@ -445,8 +445,6 @@ fn parse_types(types: &Mapping, rules: &mut Vec<SandRule>) -> anyhow::Result<(Ve
                             } else {
                                 r.precondition = format!("{} || isType_{}(SELF)", r.precondition, name);
                             }
-                            if parent.is_empty() {
-                            };
                             rule_valid = true;
                             break;
                         }
