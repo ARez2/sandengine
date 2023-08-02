@@ -32,15 +32,15 @@ bool isType_plant(Cell cell) {
 }
 #define TYPE_type0 6
 bool isType_type0(Cell cell) {
-    return cell.mat.type == TYPE_type0;
+    return cell.mat.type == TYPE_type0 || cell.mat.type == TYPE_type1 || cell.mat.type == TYPE_type2;
 }
 #define TYPE_type1 7
 bool isType_type1(Cell cell) {
-    return cell.mat.type == TYPE_type1 || cell.mat.type == TYPE_type0;
+    return cell.mat.type == TYPE_type1 || cell.mat.type == TYPE_type2;
 }
 #define TYPE_type2 8
 bool isType_type2(Cell cell) {
-    return cell.mat.type == TYPE_type2 || cell.mat.type == TYPE_type1 || cell.mat.type == TYPE_type0;
+    return cell.mat.type == TYPE_type2;
 }
 
 #define MAT_empty Material(0, vec4(0, 0, 0, 0), 1, vec4(0, 0, 0, 0), TYPE_empty)
