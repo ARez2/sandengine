@@ -462,17 +462,17 @@ fn parse_types(types: &Mapping, rules: &mut Vec<SandRule>) -> anyhow::Result<(Ve
     let mut type_structs: Vec<SandType> = vec![
         SandType {
             id: 0,
-            name: String::from("empty"),
+            name: String::from("EMPTY"),
             ..Default::default()
         },
         SandType {
             id: 1,
-            name: String::from("null"),
+            name: String::from("NULL"),
             ..Default::default()
         },
         SandType {
             id: 2,
-            name: String::from("wall"),
+            name: String::from("WALL"),
             ..Default::default()
         },
     ];
@@ -633,7 +633,7 @@ fn parse_materials(materials: &Mapping, rules: &mut Vec<SandRule>, types: &Vec<S
         SandMaterial {
             id: 0,
             name: String::from("EMPTY"),
-            mattype: String::from("empty"),
+            mattype: String::from("EMPTY"),
             color: [0.0, 0.0, 0.0, 0.0],
             emission: [0.0, 0.0, 0.0, 0.0],
             selectable: true,
@@ -643,7 +643,7 @@ fn parse_materials(materials: &Mapping, rules: &mut Vec<SandRule>, types: &Vec<S
         SandMaterial {
             id: 1,
             name: String::from("NULL"),
-            mattype: String::from("null"),
+            mattype: String::from("NULL"),
             color: [1.0, 0.0, 1.0, 1.0],
             emission: [0.0, 0.0, 0.0, 0.0],
             selectable: false,
@@ -653,11 +653,11 @@ fn parse_materials(materials: &Mapping, rules: &mut Vec<SandRule>, types: &Vec<S
         SandMaterial {
             id: 2,
             name: String::from("WALL"),
-            mattype: String::from("wall"),
-            color: [0.0, 0.0, 0.0, 0.0],
+            mattype: String::from("WALL"),
+            color: [0.1, 0.2, 0.3, 1.0],
             emission: [0.0, 0.0, 0.0, 0.0],
             selectable: false,
-            density: 0.0,
+            density: 9999.0,
             ..Default::default()
         },
     ];

@@ -9,7 +9,11 @@ void rule_fall_slide (inout Cell self, inout Cell right, inout Cell down, inout 
     if (down.mat.density < self.mat.density) {
     swap(self, down);
 } else {
+    if (right.mat.density < self.mat.density && downright.mat.density < self.mat.density) {
+    swap(self, downright);
+} else {
     
+}
 }
 }
 

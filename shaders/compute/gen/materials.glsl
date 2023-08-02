@@ -1,19 +1,19 @@
-#define TYPE_empty 0
+#define TYPE_EMPTY 0
 
-bool isType_empty(Cell cell) {
-    return cell.mat.type == TYPE_empty;
+bool isType_EMPTY(Cell cell) {
+    return cell.mat.type == TYPE_EMPTY;
 }
 
-#define TYPE_null 1
+#define TYPE_NULL 1
 
-bool isType_null(Cell cell) {
-    return cell.mat.type == TYPE_null;
+bool isType_NULL(Cell cell) {
+    return cell.mat.type == TYPE_NULL;
 }
 
-#define TYPE_wall 2
+#define TYPE_WALL 2
 
-bool isType_wall(Cell cell) {
-    return cell.mat.type == TYPE_wall;
+bool isType_WALL(Cell cell) {
+    return cell.mat.type == TYPE_WALL;
 }
 
 #define TYPE_solid 3
@@ -47,9 +47,9 @@ bool isType_plant(Cell cell) {
 }
 
 
-#define MAT_EMPTY Material(0, vec4(0, 0, 0, 0), 1, vec4(0, 0, 0, 0), TYPE_empty)
-#define MAT_NULL Material(1, vec4(1, 0, 1, 1), 0, vec4(0, 0, 0, 0), TYPE_null)
-#define MAT_WALL Material(2, vec4(0, 0, 0, 0), 0, vec4(0, 0, 0, 0), TYPE_wall)
+#define MAT_EMPTY Material(0, vec4(0, 0, 0, 0), 1, vec4(0, 0, 0, 0), TYPE_EMPTY)
+#define MAT_NULL Material(1, vec4(1, 0, 1, 1), 0, vec4(0, 0, 0, 0), TYPE_NULL)
+#define MAT_WALL Material(2, vec4(0.1, 0.2, 0.3, 1), 9999, vec4(0, 0, 0, 0), TYPE_WALL)
 #define MAT_sand Material(3, vec4(1, 1, 0, 1), 1.5, vec4(0, 0, 0, 0), TYPE_movable_solid)
 #define MAT_rock Material(4, vec4(0.4, 0.4, 0.4, 1), 4, vec4(0, 0, 0, 0), TYPE_solid)
 #define MAT_water Material(5, vec4(0, 0, 1, 0.5), 1.5, vec4(0, 0, 0, 0), TYPE_liquid)
