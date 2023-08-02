@@ -440,12 +440,12 @@ fn parse_types(types: &Mapping, rules: &mut Vec<SandRule>) -> anyhow::Result<(Ve
                             base_rules.push(rulename.to_string());
                             accum_rules.push(rulename.to_string());
 
+                            if r.precondition.is_empty() {
+                                r.precondition = format!("isType_{}(SELF)", name);
+                            } else {
+                                r.precondition = format!("{} || isType_{}(SELF)", r.precondition, name);
+                            }
                             if parent.is_empty() {
-                                if r.precondition.is_empty() {
-                                    r.precondition = format!("isType_{}(SELF)", name);
-                                } else {
-                                    r.precondition = format!("{} || isType_{}(SELF)", r.precondition, name);
-                                }
                             };
                             rule_valid = true;
                             break;

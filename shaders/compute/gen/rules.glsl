@@ -14,7 +14,7 @@ SELF = setCell(vine, pos);
 
 void rule_slide_diagonally (inout Cell SELF, inout Cell RIGHT, inout Cell DOWN, inout Cell DOWNRIGHT, ivec2 pos) {
     // If the precondition isnt met, return
-    if (!isType_movable_solid(SELF)) {
+    if (!isType_movable_solid(SELF) || isType_type1(SELF)) {
         return;
     }
 
@@ -25,7 +25,7 @@ void rule_slide_diagonally (inout Cell SELF, inout Cell RIGHT, inout Cell DOWN, 
 
 void rule_slide_left (inout Cell SELF, inout Cell RIGHT, inout Cell DOWN, inout Cell DOWNRIGHT, ivec2 pos) {
     // If the precondition isnt met, return
-    if (!) {
+    if (!isType_type2(SELF)) {
         return;
     }
 
