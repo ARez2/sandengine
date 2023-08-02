@@ -1,3 +1,4 @@
 /target
 /.vs
 shaders/gen/*
+**/linecounter.txt
