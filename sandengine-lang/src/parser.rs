@@ -59,13 +59,13 @@ pub trait GLSLConvertible {
     fn get_glsl_code(&self) -> String;
 }
 
+
 #[derive(Debug, Clone, PartialEq)]
 pub enum SandRuleType {
     Mirrored,
     Left,
     Right
 }
-
 #[derive(Debug, Clone)]
 pub struct SandRule {
     /// Name of the rule (Mapping key)
@@ -100,7 +100,6 @@ impl GLSLConvertible for SandRule {
     }
 }
 
-// TODO: before calling each rule, check if the material is this type
 
 #[derive(Debug, Clone)]
 pub struct SandType {
