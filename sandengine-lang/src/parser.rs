@@ -78,21 +78,28 @@ pub struct SandRule {
     /// Action(s) that will be run when the if-condition evals to true
     pub do_action: String,
     /// Whether the rule is mirrored horizontally
-    pub mirror: bool
+    pub mirror: bool,
+    /// Condition that needs to be true in order for the rule to be run.
+    /// Can be either a material check or type check
+    pub precondition: String,
 }
 impl GLSLConvertible for SandRule {
     fn get_glsl_code(&self) -> String {
         format!(
 "void rule_{} (inout Cell SELF, inout Cell RIGHT, inout Cell DOWN, inout Cell DOWNRIGHT, ivec2 pos) {{
+    // If the precondition isnt met, return
+    if (!{}) {{
+        return;
+    }}
+
     if ({}) {{
         {}
     }}
-}}", self.name, self.if_cond, self.do_action)
+}}", self.name, self.precondition, self.if_cond, self.do_action)
 
     }
 }
 
-// TODO: Add a new property called all_rules where every rule (even inherited) get collected
 // TODO: before calling each rule, check if the material is this type
 
 #[derive(Debug, Clone)]
@@ -103,6 +110,8 @@ pub struct SandType {
     pub name: String,
     /// Name of the parent type
     pub inherits: String,
+    /// List of parents needed for the type check
+    parents: Vec<String>,
     /// List of names of the rules that are applied to all
     /// materials of this type
     pub base_rules: Vec<String>,
@@ -111,7 +120,14 @@ pub struct SandType {
 }
 impl GLSLConvertible for SandType {
     fn get_glsl_code(&self) -> String {
-        format!("#define TYPE_{} {}\n", self.name, self.id)
+        let mut typecheck = format!("return cell.mat.type == TYPE_{}", self.name);
+        self.parents.iter().for_each(|p| {
+            typecheck.push_str(format!(" || cell.mat.type == TYPE_{}", p).as_str());
+        });
+        format!("#define TYPE_{} {}
+bool isType_{}(Cell cell) {{
+    {};
+}}\n", self.name, self.id, self.name, typecheck)
     }
 }
 
@@ -181,7 +197,7 @@ pub fn parse_string(f: String) -> anyhow::Result<ParsingResult> {
     }
 
     let raw_types = data.get("types").expect("[sandengine-lang]: No 'types' found in input file.");
-    let res = parse_types(raw_types.as_mapping().expect("[sandengine-lang]: 'types' is not a mapping (dictionary-like)"), &rules);
+    let res = parse_types(raw_types.as_mapping().expect("[sandengine-lang]: 'types' is not a mapping (dictionary-like)"), &mut rules);
     if let Ok(mut result) = res {
         types.append(&mut result.0);
         data_serialized.append(&mut result.1);
@@ -300,6 +316,7 @@ fn parse_rules(rules: &Mapping) -> anyhow::Result<(Vec<SandRule>, Vec<Box<dyn GL
             if_cond,
             do_action: do_string,
             mirror: is_mirrored,
+            precondition: String::new(),
         };
         rule_structs.push(rule.clone());
         glsl_structs.push(Box::new(rule));
@@ -370,7 +387,7 @@ fn parse_do(parent: &str, do_str: &str) -> anyhow::Result<String> {
 
 
 
-fn parse_types(types: &Mapping, rules: &Vec<SandRule>) -> anyhow::Result<(Vec<SandType>, Vec<Box<dyn GLSLConvertible>>)> {
+fn parse_types(types: &Mapping, rules: &mut Vec<SandRule>) -> anyhow::Result<(Vec<SandType>, Vec<Box<dyn GLSLConvertible>>)> {
     let mut type_structs: Vec<SandType> = vec![];
     let mut glsl_structs: Vec<Box<dyn GLSLConvertible>> = vec![];
     
@@ -386,6 +403,7 @@ fn parse_types(types: &Mapping, rules: &Vec<SandRule>) -> anyhow::Result<(Vec<Sa
         let mut accum_rules = vec![];
         let inherits = sandtype.1.get("inherits");
         let mut parent = String::new();
+        let mut all_parents = vec![];
         if let Some(p) = inherits {
             let parent_str = p.as_str().ok_or(anyhow!(ParsingErr::InvalidType {
                 wrong_type: "inherits",
@@ -395,7 +413,8 @@ fn parse_types(types: &Mapping, rules: &Vec<SandRule>) -> anyhow::Result<(Vec<Sa
             for t in type_structs.iter() {
                 if t.name == parent_str {
                     parent = parent_str.to_string();
-                    accum_rules = get_accum_rules(&type_structs, t);
+                    all_parents.push(t.name.clone());
+                    accum_rules = get_accum_rules(&type_structs, t, &mut all_parents);
                 }
             }
             if parent.is_empty() {
@@ -417,10 +436,18 @@ fn parse_types(types: &Mapping, rules: &Vec<SandRule>) -> anyhow::Result<(Vec<Sa
                             expected: TYPE_HINT_STRING
                         }))?;
                     let mut rule_valid = false;
-                    for r in rules {
+                    for r in rules.iter_mut() {
                         if r.name == rulename {
                             base_rules.push(rulename.to_string());
                             accum_rules.push(rulename.to_string());
+
+                            if parent.is_empty() {
+                                if r.precondition.is_empty() {
+                                    r.precondition = format!("isType_{}(SELF)", name);
+                                } else {
+                                    r.precondition = format!("{} || isType_{}(SELF)", r.precondition, name);
+                                }
+                            };
                             rule_valid = true;
                             break;
                         }
@@ -445,6 +472,7 @@ fn parse_types(types: &Mapping, rules: &Vec<SandRule>) -> anyhow::Result<(Vec<Sa
             id: idx,
             name,
             inherits: parent,
+            parents: all_parents,
             base_rules,
             accum_rules
         };
@@ -458,11 +486,12 @@ fn parse_types(types: &Mapping, rules: &Vec<SandRule>) -> anyhow::Result<(Vec<Sa
 }
 
 
-fn get_accum_rules(all_types: &Vec<SandType>, current_type: &SandType) -> Vec<String> {
+fn get_accum_rules(all_types: &Vec<SandType>, current_type: &SandType, accum_parents: &mut Vec<String>) -> Vec<String> {
     if !current_type.inherits.is_empty() {
         for t in all_types {
             if t.name == current_type.inherits {
-                let mut parent_rules = get_accum_rules(all_types, t);
+                accum_parents.push(t.name.clone());
+                let mut parent_rules = get_accum_rules(all_types, t, accum_parents);
                 let mut r = current_type.base_rules.clone();
                 r.append(&mut parent_rules);
                 return r;

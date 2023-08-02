@@ -7,14 +7,41 @@ struct Material {
     int type;
 };
 #define TYPE_empty 0
+bool isType_empty(Cell cell) {
+    return cell.mat.type == TYPE_empty;
+}
 #define TYPE_solid 1
+bool isType_solid(Cell cell) {
+    return cell.mat.type == TYPE_solid;
+}
 #define TYPE_movable_solid 2
+bool isType_movable_solid(Cell cell) {
+    return cell.mat.type == TYPE_movable_solid;
+}
 #define TYPE_liquid 3
+bool isType_liquid(Cell cell) {
+    return cell.mat.type == TYPE_liquid;
+}
 #define TYPE_gas 4
+bool isType_gas(Cell cell) {
+    return cell.mat.type == TYPE_gas;
+}
 #define TYPE_plant 5
+bool isType_plant(Cell cell) {
+    return cell.mat.type == TYPE_plant;
+}
 #define TYPE_type0 6
+bool isType_type0(Cell cell) {
+    return cell.mat.type == TYPE_type0;
+}
 #define TYPE_type1 7
+bool isType_type1(Cell cell) {
+    return cell.mat.type == TYPE_type1 || cell.mat.type == TYPE_type0;
+}
 #define TYPE_type2 8
+bool isType_type2(Cell cell) {
+    return cell.mat.type == TYPE_type2 || cell.mat.type == TYPE_type1 || cell.mat.type == TYPE_type0;
+}
 
 #define MAT_empty Material(0, vec4(0, 0, 0, 0), 1, vec4(0, 0, 0, 0), TYPE_empty)
 #define MAT_sand Material(1, vec4(0.003921569, 0.003921569, 0.003921569, 1), 1.5, vec4(0, 0, 0, 0), TYPE_movable_solid)

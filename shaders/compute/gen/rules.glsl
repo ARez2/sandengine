@@ -1,6 +1,11 @@
 
 // =============== RULES ===============
 void rule_gravity (inout Cell SELF, inout Cell RIGHT, inout Cell DOWN, inout Cell DOWNRIGHT, ivec2 pos) {
+    // If the precondition isnt met, return
+    if (!isType_movable_solid(SELF) || isType_type0(SELF)) {
+        return;
+    }
+
     if (DOWN.mat.density < SELF.mat.density) {
         swap(SELF, DOWN);
 SELF = setCell(vine, pos);
@@ -8,12 +13,22 @@ SELF = setCell(vine, pos);
 }
 
 void rule_slide_diagonally (inout Cell SELF, inout Cell RIGHT, inout Cell DOWN, inout Cell DOWNRIGHT, ivec2 pos) {
+    // If the precondition isnt met, return
+    if (!isType_movable_solid(SELF)) {
+        return;
+    }
+
     if (RIGHT.mat.density < SELF.mat.density || DOWNRIGHT.mat.density < SELF.mat.density) {
         swap(SELF, DOWNRIGHT);
     }
 }
 
 void rule_slide_left (inout Cell SELF, inout Cell RIGHT, inout Cell DOWN, inout Cell DOWNRIGHT, ivec2 pos) {
+    // If the precondition isnt met, return
+    if (!) {
+        return;
+    }
+
     if (LEFT.mat.density < SELF.mat.density) {
         swap(SELF, LEFT);
     }
