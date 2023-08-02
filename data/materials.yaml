@@ -24,7 +24,7 @@ rules:
     do:
       - SWAP SELF DOWN
     else:
-      if: RIGHT.mat.density < SELF.mat.density or DOWNRIGHT.mat.density < SELF.mat.density
+      if: RIGHT.mat.density < SELF.mat.density and DOWNRIGHT.mat.density < SELF.mat.density
       do: SWAP SELF DOWNRIGHT
     mirrored: true
 

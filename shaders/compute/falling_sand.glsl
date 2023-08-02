@@ -48,22 +48,6 @@ Cell[8] neighbours;
 #include "operations.glsl"
 #include "gen/rules.glsl"
 
-void rule_fall_slide2 (inout Cell self, inout Cell right, inout Cell down, inout Cell downright, ivec2 pos) {
-    // If the precondition isnt met, return
-    if (!(isType_movable_solid(self))) {
-        return;
-    }
-
-    if (down.mat.density < self.mat.density) {
-    swap(self, down);
-} else {
-    if (right.mat.density < self.mat.density || downright.mat.density < self.mat.density) {
-    swap(self, downright);
-} else {
-    
-}
-}
-}
 
 Cell simulate() {
     ivec2 pos = ivec2(floor(gl_GlobalInvocationID.xy));
@@ -98,7 +82,6 @@ Cell simulate() {
 
 
     applyMirroredRules(self, right, down, downright, pos_rounded);
-    rule_fall_slide2(self, right, down, downright, pos_rounded);
     // float ownDensity = self.mat.density;
 
     // // The lower, the less likely it will be to fall diagonally, forming higher piles
