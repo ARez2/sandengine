@@ -55,18 +55,20 @@ pub fn parse() {
             let mut right_rules_call = String::new();
 
             result.rules.iter().for_each(|r| {
-                rule_functions.push_str(format!("{}\n\n", r.get_glsl_code()).as_str());
-                match r.ruletype {
-                    parser::SandRuleType::Mirrored => {
-                        mirrored_rules_call.push_str(format!("rule_{}(SELF, RIGHT, DOWN, DOWNRIGHT, pos);\n", r.name).as_str());
-                    },
-                    parser::SandRuleType::Left => {
-                        left_rules_call.push_str(format!("rule_{}(SELF, LEFT, DOWN, DOWNRIGHT, pos);\n", r.name).as_str());
-                    },
-                    parser::SandRuleType::Right => {
-                        right_rules_call.push_str(format!("rule_{}(SELF, RIGHT, DOWN, DOWNRIGHT, pos);\n", r.name).as_str());
-                    }
-                };
+                if r.used {
+                    rule_functions.push_str(format!("{}\n\n", r.get_glsl_code()).as_str());
+                    match r.ruletype {
+                        parser::SandRuleType::Mirrored => {
+                            mirrored_rules_call.push_str(format!("rule_{}(SELF, RIGHT, DOWN, DOWNRIGHT, pos);\n", r.name).as_str());
+                        },
+                        parser::SandRuleType::Left => {
+                            left_rules_call.push_str(format!("rule_{}(SELF, LEFT, DOWN, DOWNRIGHT, pos);\n", r.name).as_str());
+                        },
+                        parser::SandRuleType::Right => {
+                            right_rules_call.push_str(format!("rule_{}(SELF, RIGHT, DOWN, DOWNRIGHT, pos);\n", r.name).as_str());
+                        }
+                    };
+                }
             });
             let path = cwd
                 .join("shaders")

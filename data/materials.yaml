@@ -15,6 +15,11 @@ rules:
     do: SWAP SELF LEFT
     chance: 0.7
     mirrored: false
+  vine_rule:
+    if: SELF.mat == empty && DOWN.mat == vine
+    do: SET SELF vine
+    mirrored: false
+    chance: 0.01
 
 types:
   empty:
@@ -86,3 +91,6 @@ materials:
     type: plant
     color: [0.14, 0.5, 0.19]
     density: 2.5
+    extra_rules: [
+      vine_rule
+    ]

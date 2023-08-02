@@ -82,6 +82,8 @@ pub struct SandRule {
     /// Condition that needs to be true in order for the rule to be run.
     /// Can be either a material check or type check
     pub precondition: String,
+    /// Whether the rule is used as a base_rule of a type of as extra_rule of a material
+    pub used: bool,
 }
 impl GLSLConvertible for SandRule {
     fn get_glsl_code(&self) -> String {
@@ -205,7 +207,7 @@ pub fn parse_string(f: String) -> anyhow::Result<ParsingResult> {
     }
 
     let raw_materials = data.get("materials").expect("[sandengine-lang]: No 'materials' found in input file.");
-    let res = parse_materials(raw_materials.as_mapping().expect("[sandengine-lang]: 'materials' is not a mapping (dictionary-like)"), &rules, &types);
+    let res = parse_materials(raw_materials.as_mapping().expect("[sandengine-lang]: 'materials' is not a mapping (dictionary-like)"), &mut rules, &types);
     if let Ok(mut result) = res {
         materials.append(&mut result.0);
         data_serialized.append(&mut result.1);
@@ -316,6 +318,7 @@ fn parse_rules(rules: &Mapping) -> anyhow::Result<(Vec<SandRule>, Vec<Box<dyn GL
             do_action: do_string,
             mirror: is_mirrored,
             precondition: String::new(),
+            used: false,
         };
         rule_structs.push(rule.clone());
         glsl_structs.push(Box::new(rule));
@@ -437,6 +440,7 @@ fn parse_types(types: &Mapping, rules: &mut Vec<SandRule>) -> anyhow::Result<(Ve
                     let mut rule_valid = false;
                     for r in rules.iter_mut() {
                         if r.name == rulename {
+                            r.used = true;
                             base_rules.push(rulename.to_string());
                             accum_rules.push(rulename.to_string());
 
@@ -501,7 +505,7 @@ fn get_accum_rules(all_types: &Vec<SandType>, current_type: &SandType, accum_par
 }
 
 
-fn parse_materials(materials: &Mapping, rules: &Vec<SandRule>, types: &Vec<SandType>) -> anyhow::Result<(Vec<SandMaterial>, Vec<Box<dyn GLSLConvertible>>)> {
+fn parse_materials(materials: &Mapping, rules: &mut Vec<SandRule>, types: &Vec<SandType>) -> anyhow::Result<(Vec<SandMaterial>, Vec<Box<dyn GLSLConvertible>>)> {
     let mut material_structs: Vec<SandMaterial> = vec![];
     let mut glsl_structs: Vec<Box<dyn GLSLConvertible>> = vec![];
 
@@ -574,8 +578,14 @@ fn parse_materials(materials: &Mapping, rules: &Vec<SandRule>, types: &Vec<SandT
             if let Some(extra) = extra.as_sequence() {
                 for extra_rule in extra {
                     if let Some(extra_rule) = extra_rule.as_str() {
-                        for r in rules {
+                        for r in rules.iter_mut() {
                             if r.name == extra_rule {
+                                r.used = true;
+                                if r.precondition.is_empty() {
+                                    r.precondition = format!("SELF.mat == MAT_{}", name);
+                                } else {
+                                    r.precondition = format!("{} || SELF.mat == MAT_{}", r.precondition, name)
+                                }
                                 extra_rules.push(extra_rule.to_string());
                             }
                         }

@@ -34,6 +34,17 @@ void rule_slide_left (inout Cell SELF, inout Cell RIGHT, inout Cell DOWN, inout 
     }
 }
 
+void rule_vine_rule (inout Cell SELF, inout Cell RIGHT, inout Cell DOWN, inout Cell DOWNRIGHT, ivec2 pos) {
+    // If the precondition isnt met, return
+    if (!SELF.mat == MAT_vine) {
+        return;
+    }
+
+    if (SELF.mat == empty && DOWN.mat == vine) {
+        SELF = setCell(vine, pos);
+    }
+}
+
 
 
 
@@ -64,4 +75,5 @@ void applyRightRules(
     inout Cell DOWNRIGHT,
     ivec2 pos) {
     rule_gravity(SELF, RIGHT, DOWN, DOWNRIGHT, pos);
+rule_vine_rule(SELF, RIGHT, DOWN, DOWNRIGHT, pos);
 }
