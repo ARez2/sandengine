@@ -2,16 +2,7 @@ pub mod parser;
 use colored::Colorize;
 use parser::{parse_string, GLSLConvertible};
 
-const MATERIAL_STRUCT: &'static str = 
-"struct Material {
-    int id;
-    vec4 color;
-    float density;
-    vec4 emission;
-
-    int type;
-};
-";
+// TODO: Create a validator function (extra file) that checks every if/ do condition??
 
 
 pub fn parse() {
@@ -20,6 +11,7 @@ pub fn parse() {
         .join("materials.yaml");
     let f = std::fs::read_to_string(filepath).unwrap();
     let parse_res = parse_string(f);
+    // TODO: Move result conversion into GLSL into separate function or file w/ function
     match parse_res {
         Ok(result) => {
             // println!("{}{:#?}", "Rules: ".bold(), result.rules);
@@ -28,15 +20,45 @@ pub fn parse() {
             println!("{}", "[sandengine-lang]: Parsing ok.".green().bold());
 
             // ========== Create materials.glsl which contains materials and types ==========
-            let mut materials_types = String::from(MATERIAL_STRUCT);
+            let mut materials_types = String::from("
+// ======== MANDATORY, DEFAULT MATERIALS AND TYPES, DONT CHANGE ========
+#define TYPE_NULL 0
+#define TYPE_WALL 1
+#define TYPE_EMPTY 2
+#define MAT_NULL Material(0, vec4(1.0, 0.0, 1.0, 1.0), 0.0,  vec4(0.0), TYPE_NULL)
+#define MAT_WALL Material(1, vec4(0.1, 0.1, 0.1, 1.0), 9999.0, vec4(0.0), TYPE_WALL)
+#define MAT_EMPTY Material(2, vec4(0.0), 1.0, vec4(0.0), TYPE_EMPTY)
+
+// =====================================================================\n\n");
 
             for t in result.types {
                 materials_types.push_str(t.get_glsl_code().as_str());
             };
             materials_types.push('\n');
-            for m in result.materials {
+            let mut all_mats_list = String::new();
+            for m in result.materials.iter() {
                 materials_types.push_str(m.get_glsl_code().as_str());
+                all_mats_list.push_str(format!("MAT_{},\n", m.name.clone()).as_str());
             };
+
+            let helpers_functions = format!("
+Material[{}] materials() {{
+    Material allMaterials[{}] = {{
+        {}
+    }};
+    return allMaterials;
+}}
+
+Material getMaterialFromID(int id) {{
+    for (int i = 0; i < materials().length(); i++) {{
+        if (id == materials()[i].id) {{
+            return materials()[i];
+        }};
+    }};
+    return MAT_NULL;
+}}\n\n", result.materials.len(), result.materials.len(), all_mats_list);
+
+            materials_types.push_str(helpers_functions.as_str());
 
             let path = cwd
                 .join("shaders")
@@ -59,13 +81,13 @@ pub fn parse() {
                     rule_functions.push_str(format!("{}\n\n", r.get_glsl_code()).as_str());
                     match r.ruletype {
                         parser::SandRuleType::Mirrored => {
-                            mirrored_rules_call.push_str(format!("rule_{}(SELF, RIGHT, DOWN, DOWNRIGHT, pos);\n", r.name).as_str());
+                            mirrored_rules_call.push_str(format!("rule_{}(self, right, down, downright, pos);\n", r.name).as_str());
                         },
                         parser::SandRuleType::Left => {
-                            left_rules_call.push_str(format!("rule_{}(SELF, LEFT, DOWN, DOWNRIGHT, pos);\n", r.name).as_str());
+                            left_rules_call.push_str(format!("rule_{}(self, left, down, downright, pos);\n", r.name).as_str());
                         },
                         parser::SandRuleType::Right => {
-                            right_rules_call.push_str(format!("rule_{}(SELF, RIGHT, DOWN, DOWNRIGHT, pos);\n", r.name).as_str());
+                            right_rules_call.push_str(format!("rule_{}(self, right, down, downright, pos);\n", r.name).as_str());
                         }
                     };
                 }
@@ -83,29 +105,29 @@ pub fn parse() {
 
 // =============== CALLERS ===============
 void applyMirroredRules(
-    inout Cell SELF,
-    inout Cell RIGHT,
-    inout Cell DOWN,
-    inout Cell DOWNRIGHT,
+    inout Cell self,
+    inout Cell right,
+    inout Cell down,
+    inout Cell downright,
     ivec2 pos) {{
     {}
 }}
 
 
 void applyLeftRules(
-    inout Cell SELF,
-    inout Cell LEFT,
-    inout Cell DOWN,
-    inout Cell DOWNLEFT,
+    inout Cell self,
+    inout Cell right,
+    inout Cell down,
+    inout Cell downright,
     ivec2 pos) {{
     {}
 }}
 
 void applyRightRules(
-    inout Cell SELF,
-    inout Cell RIGHT,
-    inout Cell DOWN,
-    inout Cell DOWNRIGHT,
+    inout Cell self,
+    inout Cell right,
+    inout Cell down,
+    inout Cell downright,
     ivec2 pos) {{
     {}
 }}", rule_functions, mirrored_rules_call.trim_end(), left_rules_call.trim_end(), right_rules_call.trim_end());

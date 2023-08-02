@@ -1,13 +1,9 @@
-struct Material {
-    int id;
-    vec4 color;
-    float density;
-    vec4 emission;
 
-    int type;
-};
 
 #define TYPE_EMPTY 0
+void random_func() {
+
+}
 #define TYPE_SOLID 1
 #define TYPE_MOVSOLID 2
 #define TYPE_LIQUID 3

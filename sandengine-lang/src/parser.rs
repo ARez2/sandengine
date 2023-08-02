@@ -74,9 +74,9 @@ pub struct SandRule {
     pub ruletype: SandRuleType,
     /// Expression that will need to be true in order
     /// for the 'do' action(s) to run
-    pub if_cond: String,
+    pub if_conds: Vec<String>,
     /// Action(s) that will be run when the if-condition evals to true
-    pub do_action: String,
+    pub do_actions: Vec<String>,
     /// Whether the rule is mirrored horizontally
     pub mirror: bool,
     /// Condition that needs to be true in order for the rule to be run.
@@ -85,19 +85,38 @@ pub struct SandRule {
     /// Whether the rule is used as a base_rule of a type of as extra_rule of a material
     pub used: bool,
 }
+impl SandRule {
+    fn get_func_logic(mut if_conds: Vec<String>, mut do_actions: Vec<String>) -> String {
+        if if_conds.is_empty() && do_actions.is_empty() {
+            return String::new();
+        } else if if_conds.is_empty() && !do_actions.is_empty() {
+            return do_actions.remove(0);
+        } else if !if_conds.is_empty() && !do_actions.is_empty() {
+            return format!(
+"if ({}) {{
+    {}
+}} else {{
+    {}
+}}", if_conds.remove(0), do_actions.remove(0), SandRule::get_func_logic(if_conds, do_actions));
+        };
+        String::new()
+    }
+}
 impl GLSLConvertible for SandRule {
     fn get_glsl_code(&self) -> String {
+        let directional_cell = match self.ruletype {
+            SandRuleType::Mirrored | SandRuleType::Right => "right",
+            SandRuleType::Left => "left"
+        };
         format!(
-"void rule_{} (inout Cell SELF, inout Cell RIGHT, inout Cell DOWN, inout Cell DOWNRIGHT, ivec2 pos) {{
+"void rule_{} (inout Cell self, inout Cell {}, inout Cell down, inout Cell downright, ivec2 pos) {{
     // If the precondition isnt met, return
-    if (!{}) {{
+    if (!({})) {{
         return;
     }}
 
-    if ({}) {{
-        {}
-    }}
-}}", self.name, self.precondition, self.if_cond, self.do_action)
+    {}
+}}", self.name, directional_cell, self.precondition, SandRule::get_func_logic(self.if_conds.clone(), self.do_actions.clone()))
 
     }
 }
@@ -126,15 +145,13 @@ impl GLSLConvertible for SandType {
             typecheck.push_str(format!(" || cell.mat.type == TYPE_{}", c).as_str());
         });
         format!("#define TYPE_{} {}
+
 bool isType_{}(Cell cell) {{
     {};
-}}\n", self.name, self.id, self.name, typecheck)
+}}\n\n", self.name, self.id, self.name, typecheck)
     }
 }
 
-
-// TODO: Check if certain material is the material with extra_rules, then apply those
-// TODO: Procedually generate is<Material>() functions for that
 
 #[derive(Debug, Clone)]
 pub struct SandMaterial {
@@ -187,9 +204,14 @@ pub fn parse_string(f: String) -> anyhow::Result<ParsingResult> {
     let mut rules: Vec<SandRule> = vec![];
     let mut types: Vec<SandType> = vec![];
     let mut materials: Vec<SandMaterial> = vec![];
-    
+
     let raw_rules = data.get("rules").expect("[sandengine-lang]: No 'rules' found in input file.");
-    let res = parse_rules(raw_rules.as_mapping().expect("[sandengine-lang]: 'rules' is not a mapping (dictionary-like)"));
+    let raw_types = data.get("types").expect("[sandengine-lang]: No 'types' found in input file.");
+    let raw_materials = data.get("materials").expect("[sandengine-lang]: No 'materials' found in input file.");
+
+    let material_names = parse_material_names(raw_materials.as_mapping().expect("[sandengine-lang]: 'materials' is not a mapping (dictionary-like)"))?;
+    
+    let res = parse_rules(raw_rules.as_mapping().expect("[sandengine-lang]: 'rules' is not a mapping (dictionary-like)"), material_names);
     if let Ok(mut result) = res {
         rules.append(&mut result.0);
         data_serialized.append(&mut result.1);
@@ -197,7 +219,6 @@ pub fn parse_string(f: String) -> anyhow::Result<ParsingResult> {
         bail!("Error while parsing rules: '{}'", res.err().unwrap());
     }
 
-    let raw_types = data.get("types").expect("[sandengine-lang]: No 'types' found in input file.");
     let res = parse_types(raw_types.as_mapping().expect("[sandengine-lang]: 'types' is not a mapping (dictionary-like)"), &mut rules);
     if let Ok(mut result) = res {
         types.append(&mut result.0);
@@ -206,7 +227,6 @@ pub fn parse_string(f: String) -> anyhow::Result<ParsingResult> {
         bail!("Error while parsing types: '{}'", res.err().unwrap());
     }
 
-    let raw_materials = data.get("materials").expect("[sandengine-lang]: No 'materials' found in input file.");
     let res = parse_materials(raw_materials.as_mapping().expect("[sandengine-lang]: 'materials' is not a mapping (dictionary-like)"), &mut rules, &types);
     if let Ok(mut result) = res {
         materials.append(&mut result.0);
@@ -225,7 +245,7 @@ pub fn parse_string(f: String) -> anyhow::Result<ParsingResult> {
 
 
 
-fn parse_rules(rules: &Mapping) -> anyhow::Result<(Vec<SandRule>, Vec<Box<dyn GLSLConvertible>>)> {
+fn parse_rules(rules: &Mapping, material_names: Vec<String>) -> anyhow::Result<(Vec<SandRule>, Vec<Box<dyn GLSLConvertible>>)> {
     let mut rule_structs: Vec<SandRule> = vec![];
     let mut glsl_structs: Vec<Box<dyn GLSLConvertible>> = vec![];
 
@@ -237,52 +257,10 @@ fn parse_rules(rules: &Mapping) -> anyhow::Result<(Vec<SandRule>, Vec<Box<dyn GL
                 expected: TYPE_HINT_STRING
             }))?
             .to_string();
-        let if_cond = key.1
-            .get("if")
-            .ok_or(anyhow!(ParsingErr::<bool>::MissingField {
-                field_name: "if".to_string(),
-                missing_in: format!("rules/{}", name)
-            }))?;
-        let mut if_cond = if_cond.as_str()
-            .ok_or(anyhow!(ParsingErr::InvalidType {
-                wrong_type: "if".to_string(),
-                missing_in: format!("rules/{}", name),
-                expected: TYPE_HINT_STRING
-            }))?
-            .to_string();
-
-        if_cond = if_cond.replace(" or ", " || ");
-        if_cond = if_cond.replace(" and ", " && ");
-
-        let do_action = key.1
-            .get("do")
-            .ok_or(anyhow!(ParsingErr::<bool>::MissingField {
-                field_name: "do".to_string(),
-                missing_in: format!("rules/{}", name)
-            }))?;
         
-        // The final string that is the do action
-        let mut do_string = String::new();
-        let parent_path = &format!("rules/{}", name);
-        if let Some(do_action) = do_action.as_str() {
-            do_string = parse_do(parent_path, do_action)?;
-        };
-
-        if let Some(do_list) = do_action.as_sequence() {
-            for do_action in do_list {
-                if let Some(do_action) = do_action.as_str() {
-                    let do_str = parse_do(parent_path, do_action)?;
-                    do_string.push_str(&do_str);
-                }
-            }
-        };
-        do_string = do_string.trim_end().to_string();
-
-        let else_ = key.1.get("else");
-        let parent_path = &format!("rules/{}/else", name);
-
-        
-
+        let mut if_conds = vec![];
+        let mut do_actions = vec![];
+        parse_conditionals(key.1, false, format!("rules/{}", name), &mut if_conds, &mut do_actions, &material_names)?;
         
         let is_mirrored = {
             let m = key.1.get("mirrored");
@@ -303,7 +281,7 @@ fn parse_rules(rules: &Mapping) -> anyhow::Result<(Vec<SandRule>, Vec<Box<dyn GL
         let ruletype = match is_mirrored {
             true => SandRuleType::Mirrored,
             false => {
-                if do_string.contains("LEFT") {
+                if do_actions[0].contains("LEFT") {
                     SandRuleType::Left
                 } else {
                     SandRuleType::Right
@@ -314,17 +292,111 @@ fn parse_rules(rules: &Mapping) -> anyhow::Result<(Vec<SandRule>, Vec<Box<dyn GL
         let rule = SandRule {
             name,
             ruletype,
-            if_cond,
-            do_action: do_string,
+            if_conds,
+            do_actions,
             mirror: is_mirrored,
             precondition: String::new(),
             used: false,
         };
+        //println!("{:#?}", rule);
         rule_structs.push(rule.clone());
         glsl_structs.push(Box::new(rule));
     }
 
     Ok((rule_structs, glsl_structs))
+}
+
+
+
+
+
+fn parse_conditionals(parent: &Value, parent_is_else: bool, parent_path: String, if_conds: &mut Vec<String>, do_actions: &mut Vec<String>, material_names: &Vec<String>) -> anyhow::Result<()> {
+    let if_cond = parent.get("if");
+
+    // We are on the top level of all conditions, so if is mandatory
+    if if_cond.is_none() && !parent_is_else {
+        bail!(anyhow!(ParsingErr::<bool>::MissingField {
+            field_name: "if".to_string(),
+            missing_in: format!("{}", parent_path)
+        }));
+    } else if if_cond.is_some() {
+        let if_cond = if_cond.unwrap();
+
+        let mut if_cond = if_cond.as_str()
+            .ok_or(anyhow!(ParsingErr::InvalidType {
+                wrong_type: "if".to_string(),
+                missing_in: format!("{}", parent_path),
+                expected: TYPE_HINT_STRING
+            }))?
+            .to_string();
+
+        parse_global_scope(&mut if_cond);
+
+        let material_pattern = r"\w* [[:punct:]]* (\w*)";
+        let re = Regex::new(material_pattern).unwrap();
+        
+        re.captures_iter(if_cond.clone().as_str()).for_each(|captures| {
+            for m in material_names {
+                if m == captures.get(1).unwrap().as_str() {
+                    if_cond = if_cond.replace(m, format!("MAT_{}", m).as_str());
+                };
+            }
+        });
+
+        if_conds.push(if_cond);
+    }
+    
+    // A 'do' is always mandatory, so bail if non existent
+    let do_action = parent
+        .get("do")
+        .ok_or(anyhow!(ParsingErr::<bool>::MissingField {
+            field_name: "do".to_string(),
+            missing_in: format!("{}", parent_path)
+        }))?;
+    
+
+    // The final string that is the do action
+    let mut do_string = String::new();
+    if let Some(do_action) = do_action.as_str() {
+        do_string = parse_do(&parent_path, &do_action)?;
+        parse_global_scope(&mut do_string);
+    };
+
+    if let Some(do_list) = do_action.as_sequence() {
+        for do_action in do_list {
+            if let Some(do_action) = do_action.as_str() {
+                let mut do_str = parse_do(&parent_path, do_action)?;
+                parse_global_scope(&mut do_str);
+                do_string.push_str(&do_str);
+            }
+        }
+    };
+    do_string = do_string.trim_end().to_string();
+
+    do_actions.push(do_string);
+
+    let else_: Option<&Value> = parent.get("else");
+    if let Some(e) = else_ {
+        parse_conditionals(e, true, format!("{}/else", parent_path), if_conds, do_actions, material_names)
+    } else {
+        Ok(())
+    }
+}
+
+
+/// Replaces all global scope variables with GLSL-friendly ones
+fn parse_global_scope(parse_str: &mut String) {
+    *parse_str = parse_str.replace(" or ", " || ");
+    *parse_str = parse_str.replace(" and ", " && ");
+    
+    *parse_str = parse_str.replace("empty", "MAT_EMPTY");
+
+    *parse_str = parse_str.replace("SELF", "self");
+    *parse_str = parse_str.replace("RIGHT", "right");
+    *parse_str = parse_str.replace("LEFT", "left");
+    *parse_str = parse_str.replace("DOWN", "down");
+    *parse_str = parse_str.replace("DOWNRIGHT", "downright");
+    *parse_str = parse_str.replace("DOWNLEFT", "downleft");
 }
 
 
@@ -374,7 +446,7 @@ fn parse_do(parent: &str, do_str: &str) -> anyhow::Result<String> {
         // TODO: Check if it is either a GLOBAL_CELL or material
         // Right now, it just assumes its a material
         let second_arg = captures.get(2).unwrap().as_str();
-        do_string.push_str(format!("{} = setCell({}, pos);\n", first_arg, second_arg).as_str());
+        do_string.push_str(format!("{} = newCell(MAT_{}, pos);\n", first_arg, second_arg).as_str());
     }
 
     if !found_match {
@@ -393,7 +465,8 @@ fn parse_types(types: &Mapping, rules: &mut Vec<SandRule>) -> anyhow::Result<(Ve
     let mut type_structs: Vec<SandType> = vec![];
     let mut glsl_structs: Vec<Box<dyn GLSLConvertible>> = vec![];
     
-    let mut idx = 0;
+    // Index is 3 because of the 3 default types
+    let mut idx = 3;
     for sandtype in types {
         let name = sandtype.0.as_str()
             .ok_or(anyhow!(ParsingErr::InvalidType {
@@ -447,9 +520,9 @@ fn parse_types(types: &Mapping, rules: &mut Vec<SandRule>) -> anyhow::Result<(Ve
                             accum_rules.push(rulename.to_string());
 
                             if r.precondition.is_empty() {
-                                r.precondition = format!("isType_{}(SELF)", name);
+                                r.precondition = format!("isType_{}(self)", name);
                             } else {
-                                r.precondition = format!("{} || isType_{}(SELF)", r.precondition, name);
+                                r.precondition = format!("{} || isType_{}(self)", r.precondition, name);
                             }
                             rule_valid = true;
                             break;
@@ -521,11 +594,29 @@ fn get_accum_rules(all_types: &Vec<SandType>, current_type: &SandType) -> Vec<St
 }
 
 
+
+fn parse_material_names(materials: &Mapping) -> anyhow::Result<Vec<String>> {
+    let mut matnames = vec![];
+    for mat in materials {
+        let name = mat.0.as_str()
+            .ok_or(anyhow!(ParsingErr::InvalidType {
+                wrong_type: mat.0.clone(),
+                missing_in: "materials".to_string(),
+                expected: TYPE_HINT_STRING
+            }))?
+            .to_string();
+        matnames.push(name);
+    };
+    Ok(matnames)
+}
+
+
 fn parse_materials(materials: &Mapping, rules: &mut Vec<SandRule>, types: &Vec<SandType>) -> anyhow::Result<(Vec<SandMaterial>, Vec<Box<dyn GLSLConvertible>>)> {
     let mut material_structs: Vec<SandMaterial> = vec![];
     let mut glsl_structs: Vec<Box<dyn GLSLConvertible>> = vec![];
 
-    let mut idx = 0;
+    // Index is 3 because of the 3 default materials
+    let mut idx = 3;
     for mat in materials {
         let name = mat.0.as_str()
             .ok_or(anyhow!(ParsingErr::InvalidType {
@@ -598,9 +689,9 @@ fn parse_materials(materials: &Mapping, rules: &mut Vec<SandRule>, types: &Vec<S
                             if r.name == extra_rule {
                                 r.used = true;
                                 if r.precondition.is_empty() {
-                                    r.precondition = format!("SELF.mat == MAT_{}", name);
+                                    r.precondition = format!("self.mat == MAT_{}", name);
                                 } else {
-                                    r.precondition = format!("{} || SELF.mat == MAT_{}", r.precondition, name)
+                                    r.precondition = format!("{} || self.mat == MAT_{}", r.precondition, name)
                                 }
                                 extra_rules.push(extra_rule.to_string());
                             }

@@ -7,8 +7,7 @@ layout(local_size_x = 16, local_size_y = 16, local_size_z = 1) in;
 //#define DEBUG_SHOW_UPDATERECT
 //#define DEBUG_SHOW_ORIG_POS
 //#define DEBUG_SHOW_MOVERIGHT
-
-#define UP ivec2(0, -1)
+#define UP ivec2(0, -1)
 #define DOWN ivec2(0, 1)
 #define LEFT ivec2(-1, 0)
 #define RIGHT ivec2(1, 0)
@@ -41,8 +40,7 @@ ivec2[2] getMoveDirs(ivec2 pos, bool moveRight) {
 }
 
 
-
-// Gold Noise ©2015 dcerisano@standard3d.com
+// Gold Noise ©2015 dcerisano@standard3d.com
 // - based on the Golden Ratio
 // - uniform normalized distribution
 // - fastest static noise generator function (also runs at low precision)
@@ -204,37 +202,6 @@ ivec2[8] getDiagonalNeighbours(ivec2 pos) {
 
 
 
-//struct Material {
-    int id;
-    vec4 color;
-    float density;
-    vec4 emission;
-
-    int type;
-};
-
-#define TYPE_EMPTY 0
-#define TYPE_SOLID 1
-#define TYPE_MOVSOLID 2
-#define TYPE_LIQUID 3
-#define TYPE_GAS 4
-#define TYPE_PLANT 5
-
-#define EMPTY Material(0, vec4(0.0, 0.0, 0.0, 0.0), 1.0,  vec4(0.0), TYPE_EMPTY)
-#define SAND  Material(1, vec4(1.0, 1.0, 0.0, 1.0), 3.0,  vec4(0.0), TYPE_MOVSOLID)
-#define SOLID Material(2, vec4(0.4, 0.4, 0.4, 1.0), 4.0,  vec4(0.0), TYPE_SOLID)
-#define WATER Material(3, vec4(0.0, 0.0, 1.0, 0.5), 2.0,  vec4(0.0), TYPE_LIQUID)
-#define NULL  Material(4, vec4(1.0, 0.0, 1.0, 1.0), 0.0,  vec4(0.0), TYPE_EMPTY)
-#define WALL  Material(5, vec4(0.1, 0.1, 0.1, 1.0), 99.0, vec4(0.0), TYPE_SOLID)
-
-#define RADIOACTIVE Material(6, vec4(0.196, 0.55, 0.184, 1.0), 5.0, vec4(0.05, 0.7, 0.05, 0.9), TYPE_SOLID)
-#define SMOKE Material(7, vec4(0.3, 0.3, 0.3, 0.3), 0.1, vec4(0.0), TYPE_GAS)
-#define TOXIC Material(8, vec4(0.0, 0.7, 0.2, 0.5), 1.8, vec4(0.0, 0.5, 0.0, 0.99999), TYPE_LIQUID)
-
-#define VINE Material(9, vec4(0.14, 0.5, 0.19, 1.0), 2.5, vec4(0.0), TYPE_PLANT)
-
-
-
 struct Material {
     int id;
     vec4 color;
@@ -242,27 +209,7 @@ struct Material {
     vec4 emission;
 
     int type;
-};
-#define TYPE_empty 0
-#define TYPE_solid 1
-#define TYPE_movable_solid 2
-#define TYPE_liquid 3
-#define TYPE_gas 4
-#define TYPE_plant 5
-
-#define MAT_empty Material(0, vec4(0, 0, 0, 0), 1, vec4(0, 0, 0, 0), TYPE_empty)
-#define MAT_sand Material(1, vec4(0.003921569, 0.003921569, 0.003921569, 1), 1.5, vec4(0, 0, 0, 0), TYPE_movable_solid)
-#define MAT_rock Material(2, vec4(0.4, 0.4, 0.4, 1), 4, vec4(0, 0, 0, 0), TYPE_solid)
-#define MAT_water Material(3, vec4(0, 0, 1, 0.5), 1.5, vec4(0, 0, 0, 0), TYPE_liquid)
-#define MAT_radioactive Material(4, vec4(0.196, 0.55, 0.184, 1), 5, vec4(0.05, 0.7, 0.05, 0.9), TYPE_solid)
-#define MAT_smoke Material(5, vec4(0.3, 0.3, 0.3, 0.3), 0.1, vec4(0, 0, 0, 0), TYPE_gas)
-#define MAT_toxic_sludge Material(6, vec4(0, 0.7, 0.2, 0.5), 1.8, vec4(0, 0.5, 0, 0.99999), TYPE_liquid)
-#define MAT_vine Material(7, vec4(0.14, 0.5, 0.19, 1), 2.5, vec4(0, 0, 0, 0), TYPE_plant)
-
-
-
-
-
+};
 
 
 struct Cell {
@@ -276,20 +223,64 @@ Cell newCell(Material mat, ivec2 pos) {
 
 
 
-#define NUM_MATERIALS 10
+//#include "materials.glsl"
+// ======== MANDATORY, DEFAULT MATERIALS AND TYPES, DONT CHANGE ========
+#define TYPE_NULL 0
+#define TYPE_WALL 1
+#define TYPE_EMPTY 2
+#define MAT_NULL Material(0, vec4(1.0, 0.0, 1.0, 1.0), 0.0,  vec4(0.0), TYPE_NULL)
+#define MAT_WALL Material(1, vec4(0.1, 0.1, 0.1, 1.0), 9999.0, vec4(0.0), TYPE_WALL)
+#define MAT_EMPTY Material(2, vec4(0.0), 1.0, vec4(0.0), TYPE_EMPTY)
 
-Material[NUM_MATERIALS] materials() {
-    Material allMaterials[NUM_MATERIALS] = {
-        EMPTY,
-        SAND,
-        SOLID,
-        WATER,
-        NULL,
-        WALL,
-        RADIOACTIVE,
-        SMOKE,
-        TOXIC,
-        VINE,
+// =====================================================================
+
+#define TYPE_solid 3
+
+bool isType_solid(Cell cell) {
+    return cell.mat.type == TYPE_solid;
+}
+
+#define TYPE_movable_solid 4
+
+bool isType_movable_solid(Cell cell) {
+    return cell.mat.type == TYPE_movable_solid;
+}
+
+#define TYPE_liquid 5
+
+bool isType_liquid(Cell cell) {
+    return cell.mat.type == TYPE_liquid;
+}
+
+#define TYPE_gas 6
+
+bool isType_gas(Cell cell) {
+    return cell.mat.type == TYPE_gas;
+}
+
+#define TYPE_plant 7
+
+bool isType_plant(Cell cell) {
+    return cell.mat.type == TYPE_plant;
+}
+
+
+#define MAT_sand Material(3, vec4(1, 1, 0, 1), 1.5, vec4(0, 0, 0, 0), TYPE_movable_solid)
+#define MAT_rock Material(4, vec4(0.4, 0.4, 0.4, 1), 4, vec4(0, 0, 0, 0), TYPE_solid)
+#define MAT_water Material(5, vec4(0, 0, 1, 0.5), 1.5, vec4(0, 0, 0, 0), TYPE_liquid)
+#define MAT_radioactive Material(6, vec4(0.196, 0.55, 0.184, 1), 5, vec4(0.05, 0.7, 0.05, 0.9), TYPE_solid)
+#define MAT_smoke Material(7, vec4(0.3, 0.3, 0.3, 0.3), 0.1, vec4(0, 0, 0, 0), TYPE_gas)
+#define MAT_toxic_sludge Material(8, vec4(0, 0.7, 0.2, 0.5), 1.8, vec4(0, 0.5, 0, 0.99999), TYPE_liquid)
+
+Material[6] materials() {
+    Material allMaterials[6] = {
+        MAT_sand,
+MAT_rock,
+MAT_water,
+MAT_radioactive,
+MAT_smoke,
+MAT_toxic_sludge,
+
     };
     return allMaterials;
 }
@@ -300,48 +291,14 @@ Material getMaterialFromID(int id) {
             return materials()[i];
         };
     };
-    return NULL;
-}
-
-bool isEmpty(Cell cell) {
-    return cell.mat == EMPTY;
-}
-
-bool isSolid(Cell cell) {
-    return cell.mat.type == TYPE_SOLID;
-}
-
-bool isLiquid(Cell cell) {
-    return cell.mat.type == TYPE_LIQUID;
-}
-
-bool isGas(Cell cell) {
-    return cell.mat.type == TYPE_GAS;
-}
-
-bool isMovSolid(Material mat) {
-    return mat.type == TYPE_MOVSOLID;
-}
-bool isMovSolid(Cell cell) {
-    return cell.mat.type == TYPE_MOVSOLID;
-}
-
-bool isPlant(Cell cell) {
-    return cell.mat.type == TYPE_PLANT;
-}
-
-bool shouldDoMovSolidStep(Cell cell) {
-    return isMovSolid(cell) || isLiquid(cell);
-}
-bool shouldDoLiquidStep(Cell cell) {
-    return isLiquid(cell);
-}
-bool shouldDoGasStep(Cell cell) {
-    return isGas(cell);
+    return MAT_NULL;
 }
 
 
 
+
+
+//#include "material_helpers.glsl"
 
 uniform sampler2D input_data;
 layout(rgba32f) uniform writeonly image2D output_data;
@@ -364,8 +321,7 @@ layout(rgba32f, binding = 6) uniform writeonly image2D output_effects;
 layout(r32ui, binding = 7) uniform volatile coherent uimage2D image_lock;
 
 Cell[8] neighbours;
-
-
+
 
 
 bool outOfBounds(vec2 pos) {
@@ -409,9 +365,9 @@ vec4 IDToCell(int id) {
 Cell getCell(ivec2 pos) {
     if (outOfBounds(pos)) {
         #ifdef SCREEN_IS_BORDER
-        return newCell(WALL, pos);
+        return newCell(MAT_WALL, pos);
         #endif // SCREEN_IS_BORDER
-        return newCell(NULL, pos);
+        return newCell(MAT_NULL, pos);
     };
     ivec4 data = ivec4(texelFetch(input_data, pos, 0));
     // data: ___id___  00000000  00000000  00000000
@@ -426,12 +382,12 @@ Cell getCell(ivec2 pos, ivec2 offset) {
 
 
 bool isCollider(Cell cell) {
-    return cell.mat != EMPTY && cell.mat != NULL && cell.mat != WALL;// && !isGas(cell) && !isLiquid(cell)
+    return cell.mat != MAT_EMPTY && cell.mat != MAT_NULL && cell.mat != MAT_WALL;// && !isGas(cell) && !isLiquid(cell)
 }
 
-bool isLightObstacle(Cell cell) {
-    return cell.mat.emission.rgb == vec3(0.0) && (isSolid(cell) || isMovSolid(cell));
-}
+// bool isLightObstacle(Cell cell) {
+//     return cell.mat.emission.rgb == vec3(0.0) && (isSolid(cell) || isMovSolid(cell));
+// }
 
 
 bool gt(vec3 a, vec3 b) {
@@ -442,7 +398,7 @@ void setCell(ivec2 pos, Cell cell, bool setCollision) {
     vec4 color = cell.mat.color;
     
     // TODO: Modify noise based on material
-    if (cell.mat != EMPTY) {
+    if (cell.mat != MAT_EMPTY) {
         float rand = noise(vec2(pos.x, pos.y), 3, 2.0, 0.25) * 0.25;
         color.r = clamp(color.r - rand, 0.0, 1.0);
         color.g = clamp(color.g - rand, 0.0, 1.0);
@@ -466,49 +422,49 @@ void setCell(ivec2 pos, Cell cell, bool setCollision) {
     
     vec4 ambientLight = vec4(vec3(0.3), 1.0);
     vec4 light;
-    if (cell.mat.emission.rgb != vec3(0.0)) {
-        light = cell.mat.emission;
-    } else if (pos.y == 0) {
-        light = vec4(vec3(1.0), 0.9999999);
-    } else {
-        vec3 avg_light = vec3(0.0);
-        vec3 max_light = vec3(0.0);
-        float avg_falloff = 0.0;
-        int num_falloff = 0;
+    // if (cell.mat.emission.rgb != vec3(0.0)) {
+    //     light = cell.mat.emission;
+    // } else if (pos.y == 0) {
+    //     light = vec4(vec3(1.0), 0.9999999);
+    // } else {
+    //     vec3 avg_light = vec3(0.0);
+    //     vec3 max_light = vec3(0.0);
+    //     float avg_falloff = 0.0;
+    //     int num_falloff = 0;
 
-        int num_lightsources = 0;
-        for (int n = 0; n < neighs.length(); n++) {
-            Cell neigh = neighCells[n];
-            ivec2 neighPos = neigh.pos;
-            bool neighObstacle = isLightObstacle(neigh);
-            vec4 light_data = texelFetch(input_light, neighPos, 0) * vec4(vec3(float(!neighObstacle)), 1.0);
-            if ((gt(light_data.rgb, vec3(0.0)) && light_data.a > 0.0) || neigh.mat == EMPTY) {
-                num_lightsources += 1;
-                vec3 light = light_data.rgb * light_data.a * (1/length(light_data.rgb));
-                avg_light += light;
-                if (light_data.a > 0.0) {
-                    avg_falloff += light_data.a;
-                    num_falloff += 1;
-                }
+    //     int num_lightsources = 0;
+    //     for (int n = 0; n < neighs.length(); n++) {
+    //         Cell neigh = neighCells[n];
+    //         ivec2 neighPos = neigh.pos;
+    //         bool neighObstacle = isLightObstacle(neigh);
+    //         vec4 light_data = texelFetch(input_light, neighPos, 0) * vec4(vec3(float(!neighObstacle)), 1.0);
+    //         if ((gt(light_data.rgb, vec3(0.0)) && light_data.a > 0.0) || neigh.mat == MAT_EMPTY) {
+    //             num_lightsources += 1;
+    //             vec3 light = light_data.rgb * light_data.a * (1/length(light_data.rgb));
+    //             avg_light += light;
+    //             if (light_data.a > 0.0) {
+    //                 avg_falloff += light_data.a;
+    //                 num_falloff += 1;
+    //             }
 
-                //               0.96, (light_data.a - (1.0 - light_data.a) * 100.0)
-                vec3 m = light * (light_data.a * 0.9);
-                max_light = max(max_light, m);
-            }
+    //             //               0.96, (light_data.a - (1.0 - light_data.a) * 100.0)
+    //             vec3 m = light * (light_data.a * 0.9);
+    //             max_light = max(max_light, m);
+    //         }
             
-        }
-        if (num_lightsources > 0) {
-            avg_light /= num_lightsources;
-        }
-        if (num_falloff> 0) {
-            avg_falloff /= float(num_falloff);
-        }
-        // Max light is fast but produces star like patterns and average is too slow, so lerp
-        //                                     0.1, 0.25
-        light = vec4(mix(avg_light.rgb, max_light, 0.25), avg_falloff);
+    //     }
+    //     if (num_lightsources > 0) {
+    //         avg_light /= num_lightsources;
+    //     }
+    //     if (num_falloff> 0) {
+    //         avg_falloff /= float(num_falloff);
+    //     }
+    //     // Max light is fast but produces star like patterns and average is too slow, so lerp
+    //     //                                     0.1, 0.25
+    //     light = vec4(mix(avg_light.rgb, max_light, 0.25), avg_falloff);
         
-    }
-    imageStore(output_light, pos, light);
+    // }
+    // imageStore(output_light, pos, light);
     
     // if (cell.mat == EMPTY) {
     //     //imageStore(output_color, pos, light);
@@ -523,19 +479,77 @@ void setCell(ivec2 pos, Material mat, bool setCollision) {
 }
 
 
-// Copies the data from another position to this position
-void pullCell(ivec2 from, ivec2 to) {
-    Cell other = getCell(from);
-    if (isSolid(other)) {
-        setCell(to, EMPTY, false);
-    } else {
-        setCell(to, other, false);
+
+
+// =============== RULES ===============
+void rule_fall_slide (inout Cell self, inout Cell right, inout Cell down, inout Cell downright, ivec2 pos) {
+    // If the precondition isnt met, return
+    if (!(isType_movable_solid(self))) {
+        return;
     }
+
+    if (down.mat.density < self.mat.density) {
+    swap(self, down);
+} else {
+    if (right.mat.density < self.mat.density || downright.mat.density < self.mat.density) {
+    swap(self, downright);
+} else {
+    
+}
+}
 }
 
 
 
 
+// =============== CALLERS ===============
+void applyMirroredRules(
+    inout Cell self,
+    inout Cell right,
+    inout Cell down,
+    inout Cell downright,
+    ivec2 pos) {
+    rule_fall_slide(self, right, down, downright, pos);
+}
+
+
+void applyLeftRules(
+    inout Cell self,
+    inout Cell right,
+    inout Cell down,
+    inout Cell downright,
+    ivec2 pos) {
+    
+}
+
+void applyRightRules(
+    inout Cell self,
+    inout Cell right,
+    inout Cell down,
+    inout Cell downright,
+    ivec2 pos) {
+    
+}
+
+
+
+
+void rule_fall_slide2 (inout Cell self, inout Cell right, inout Cell down, inout Cell downright, ivec2 pos) {
+    // If the precondition isnt met, return
+    if (!(isType_movable_solid(self))) {
+        return;
+    }
+
+    if (down.mat.density < self.mat.density) {
+    swap(self, down);
+} else {
+    if (right.mat.density < self.mat.density || downright.mat.density < self.mat.density) {
+    swap(self, downright);
+} else {
+    
+}
+}
+}
 
 Cell simulate() {
     ivec2 pos = ivec2(floor(gl_GlobalInvocationID.xy));
@@ -553,8 +567,8 @@ Cell simulate() {
     Cell down = getCell(pos_rounded + DOWN);
     Cell downright = getCell(pos_rounded + DOWNRIGHT);
 
-    if (self.mat == EMPTY && right.mat == EMPTY && down.mat == EMPTY && downright.mat == EMPTY) {
-        return newCell(EMPTY, pos_rounded);
+    if (self.mat == MAT_EMPTY && right.mat == MAT_EMPTY && down.mat == MAT_EMPTY && downright.mat == MAT_EMPTY) {
+        return newCell(MAT_EMPTY, pos_rounded);
     }
 
     Cell up = getCell(pos_rounded + UP);
@@ -562,66 +576,76 @@ Cell simulate() {
     vec4 rand1 = hash43(uvec3(pos_rounded, frame));
     vec4 rand2 = hash43(uvec3(pos_rounded, frame/8));
 
-    if (rand1.x < 0.5) {
+    bool shouldMirror = rand1.x < 0.5;
+    if (shouldMirror) {
         swap(self, right);
         swap(down, downright);
     }
 
 
+    applyMirroredRules(self, right, down, downright, pos_rounded);
+    rule_fall_slide2(self, right, down, downright, pos_rounded);
+    // float ownDensity = self.mat.density;
 
-    float ownDensity = self.mat.density;
+    // // The lower, the less likely it will be to fall diagonally, forming higher piles
+    // // TODO: Make this a material property
+    // float downspread = 0.7;
 
-    // The lower, the less likely it will be to fall diagonally, forming higher piles
-    // TODO: Make this a material property
-    float downspread = 0.7;
-
-    // First process movable solids and if that fails, process liquid movements
-    if (shouldDoMovSolidStep(self)) {
-        if (down.mat.density < ownDensity) {
-            swap(self, down);
-        } else if (right.mat.density < ownDensity && downright.mat.density < ownDensity) {
-            if (rand1.z < downspread) swap(self, downright);
-        //  We couldnt move using movSolidStep, so now try liquid movement
-        } else if (shouldDoLiquidStep(self)) {
-            if (right.mat.density < ownDensity) {
-                swap(self, right);
-            }
-        }
-    } else if (shouldDoGasStep(down)) {
-        float gasDissolveChance = 0.01;
-        if (rand1.y < gasDissolveChance) {
-            down = newCell(EMPTY, pos_rounded);
-        } else {
-            if (!isSolid(self) && down.mat.density < self.mat.density) {
-                swap(down, self);
-            } else if (!isSolid(right) && down.mat.density < right.mat.density) {
-                swap(down, right);
-            }
-        }
-    } else if (shouldDoLiquidStep(down)) {
-        if (downright.mat.density < down.mat.density) {
-            swap(down, downright);
-        }
-    }
-
-
-    if (isEmpty(self)) {
-        if (isPlant(down)) {
-            if (rand1.x < 0.0001) self = newCell(VINE, pos_rounded);
-        } else if (down.mat == SAND && downright.mat == WATER) {
-            if (rand1.x < 0.01) self = newCell(VINE, pos_rounded);
-        }
-    }
-
-    if (isPlant(self) && isEmpty(down) && isEmpty(right) && isEmpty(downright)) {
-        self = newCell(EMPTY, pos_rounded);
-        down = newCell(VINE, pos_rounded);
-    }
+    // // First process movable solids and if that fails, process liquid movements
+    // if (shouldDoMovSolidStep(self)) {
+    //     if (down.mat.density < ownDensity) {
+    //         swap(self, down);
+    //     } else if (right.mat.density < ownDensity && downright.mat.density < ownDensity) {
+    //         if (rand1.z < downspread) swap(self, downright);
+    //     //  We couldnt move using movSolidStep, so now try liquid movement
+    //     } else if (shouldDoLiquidStep(self)) {
+    //         if (right.mat.density < ownDensity) {
+    //             swap(self, right);
+    //         }
+    //     }
+    // }
+    
+    // if (shouldDoGasStep(down)) {
+    //     float gasDissolveChance = 0.01;
+    //     if (rand1.y < gasDissolveChance) {
+    //         down = newCell(EMPTY, pos_rounded);
+    //     } else {
+    //         if (!isSolid(self) && down.mat.density < self.mat.density) {
+    //             swap(down, self);
+    //         } else if (!isSolid(right) && down.mat.density < right.mat.density) {
+    //             swap(down, right);
+    //         }
+    //     }
+    // } else if (shouldDoLiquidStep(down)) {
+    //     if (downright.mat.density < down.mat.density) {
+    //         swap(down, downright);
+    //     }
+    // }
 
 
-    if (rand1.x < 0.5) {
+    // if (isEmpty(self)) {
+    //     if (isPlant(down)) {
+    //         if (rand1.x < 0.0001) self = newCell(VINE, pos_rounded);
+    //     } else if (down.mat == SAND && downright.mat == WATER) {
+    //         if (rand1.x < 0.01) self = newCell(VINE, pos_rounded);
+    //     }
+    // }
+
+    // if (isPlant(self) && isEmpty(down) && isEmpty(right) && isEmpty(downright)) {
+    //     self = newCell(EMPTY, pos_rounded);
+    //     down = newCell(VINE, pos_rounded);
+    // }
+
+
+    if (shouldMirror) {
         swap(self, right);
         swap(down, downright);
+    }
+
+    if (!shouldMirror) {
+        applyRightRules(self, right, down, downright, pos_rounded);
+    } else {
+        applyLeftRules(self, right, down, downright, pos_rounded);
     }
 
     switch (marg_idx) {
@@ -636,7 +660,7 @@ Cell simulate() {
     }
 
     // Maybe pos
-    return newCell(EMPTY, pos_rounded);
+    return newCell(MAT_EMPTY, pos_rounded);
 }
 
 
@@ -648,7 +672,7 @@ void main() {
     };
 
     if (time < 0.1) {
-        setCell(pos, EMPTY, false);
+        setCell(pos, MAT_EMPTY, false);
     }
 
 

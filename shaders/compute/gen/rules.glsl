@@ -1,48 +1,20 @@
 
 // =============== RULES ===============
-void rule_gravity (inout Cell SELF, inout Cell RIGHT, inout Cell DOWN, inout Cell DOWNRIGHT, ivec2 pos) {
+void rule_fall_slide (inout Cell self, inout Cell right, inout Cell down, inout Cell downright, ivec2 pos) {
     // If the precondition isnt met, return
-    if (!isType_movable_solid(SELF) || isType_type0(SELF)) {
+    if (!(isType_movable_solid(self))) {
         return;
     }
 
-    if (DOWN.mat.density < SELF.mat.density) {
-        swap(SELF, DOWN);
-SELF = setCell(vine, pos);
-    }
+    if (down.mat.density < self.mat.density) {
+    swap(self, down);
+} else {
+    if (right.mat.density < self.mat.density || downright.mat.density < self.mat.density) {
+    swap(self, downright);
+} else {
+    
 }
-
-void rule_slide_diagonally (inout Cell SELF, inout Cell RIGHT, inout Cell DOWN, inout Cell DOWNRIGHT, ivec2 pos) {
-    // If the precondition isnt met, return
-    if (!isType_movable_solid(SELF) || isType_type1(SELF)) {
-        return;
-    }
-
-    if (RIGHT.mat.density < SELF.mat.density || DOWNRIGHT.mat.density < SELF.mat.density) {
-        swap(SELF, DOWNRIGHT);
-    }
 }
-
-void rule_slide_left (inout Cell SELF, inout Cell RIGHT, inout Cell DOWN, inout Cell DOWNRIGHT, ivec2 pos) {
-    // If the precondition isnt met, return
-    if (!isType_type2(SELF)) {
-        return;
-    }
-
-    if (LEFT.mat.density < SELF.mat.density) {
-        swap(SELF, LEFT);
-    }
-}
-
-void rule_vine_rule (inout Cell SELF, inout Cell RIGHT, inout Cell DOWN, inout Cell DOWNRIGHT, ivec2 pos) {
-    // If the precondition isnt met, return
-    if (!SELF.mat == MAT_vine) {
-        return;
-    }
-
-    if (SELF.mat == empty && DOWN.mat == vine) {
-        SELF = setCell(vine, pos);
-    }
 }
 
 
@@ -50,30 +22,29 @@ void rule_vine_rule (inout Cell SELF, inout Cell RIGHT, inout Cell DOWN, inout C
 
 // =============== CALLERS ===============
 void applyMirroredRules(
-    inout Cell SELF,
-    inout Cell RIGHT,
-    inout Cell DOWN,
-    inout Cell DOWNRIGHT,
+    inout Cell self,
+    inout Cell right,
+    inout Cell down,
+    inout Cell downright,
     ivec2 pos) {
-    rule_slide_diagonally(SELF, RIGHT, DOWN, DOWNRIGHT, pos);
+    rule_fall_slide(self, right, down, downright, pos);
 }
 
 
 void applyLeftRules(
-    inout Cell SELF,
-    inout Cell LEFT,
-    inout Cell DOWN,
-    inout Cell DOWNLEFT,
+    inout Cell self,
+    inout Cell right,
+    inout Cell down,
+    inout Cell downright,
     ivec2 pos) {
-    rule_slide_left(SELF, LEFT, DOWN, DOWNRIGHT, pos);
+    
 }
 
 void applyRightRules(
-    inout Cell SELF,
-    inout Cell RIGHT,
-    inout Cell DOWN,
-    inout Cell DOWNRIGHT,
+    inout Cell self,
+    inout Cell right,
+    inout Cell down,
+    inout Cell downright,
     ivec2 pos) {
-    rule_gravity(SELF, RIGHT, DOWN, DOWNRIGHT, pos);
-rule_vine_rule(SELF, RIGHT, DOWN, DOWNRIGHT, pos);
+    
 }

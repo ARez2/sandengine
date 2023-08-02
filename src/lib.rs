@@ -2,7 +2,6 @@ use std::str::FromStr;
 
 pub fn run() {
     sandengine_lang::parse();
-    return;
     build_compute_shaders();
     sandengine_core::run();
 }
@@ -22,7 +21,7 @@ fn build_compute_shaders() {
 
         let path = file.unwrap().path();
         let mut contents = std::fs::read_to_string(path.clone()).unwrap();
-        let searchstr = "#include \"";
+        let searchstr = "\n#include \"";
         let mut start_idx = contents.find(searchstr).unwrap_or(0);
         while start_idx != 0 {
             had_includes = true;

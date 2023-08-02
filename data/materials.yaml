@@ -3,8 +3,7 @@ rules:
     if: DOWN.mat.density < SELF.mat.density
     do:
       - SWAP SELF DOWN
-      - SET SELF vine
-    mirrored: false
+    mirrored: true
   slide_diagonally:
     if: RIGHT.mat.density < SELF.mat.density or DOWNRIGHT.mat.density < SELF.mat.density
     do: SWAP SELF DOWNRIGHT
@@ -20,44 +19,31 @@ rules:
     do: SET SELF vine
     mirrored: false
     chance: 0.01
+  fall_slide:
+    if: DOWN.mat.density < SELF.mat.density
+    do:
+      - SWAP SELF DOWN
+    else:
+      if: RIGHT.mat.density < SELF.mat.density or DOWNRIGHT.mat.density < SELF.mat.density
+      do: SWAP SELF DOWNRIGHT
+    mirrored: true
+
 
 types:
-  empty:
   solid:
   movable_solid:
     base_rules: [
-        gravity,
-        slide_diagonally
+        fall_slide
     ]
   liquid:
   gas:
   plant:
-  type0:
-    base_rules: [
-      gravity,
-    ]
-  type1:
-    inherits: type0
-    base_rules: [
-      slide_diagonally
-    ]
-  type2:
-    inherits: type1
-    base_rules: [
-      slide_left
-    ]
-
 
 
 materials:
-  empty:
-    type: empty
-    color: [0, 0, 0, 0]
-    density: 1.0
-
   sand:
     type: movable_solid
-    color: [1, 1, 1]
+    color: [1.0, 1.0, 0]
     density: 1.5
   
   rock:
@@ -87,10 +73,10 @@ materials:
     emission: [0.0, 0.5, 0.0, 0.99999]
     density: 1.8
   
-  vine:
-    type: plant
-    color: [0.14, 0.5, 0.19]
-    density: 2.5
-    extra_rules: [
-      vine_rule
-    ]
+  # vine:
+  #   type: plant
+  #   color: [0.14, 0.5, 0.19]
+  #   density: 2.5
+  #   extra_rules: [
+  #     vine_rule
+  #   ]

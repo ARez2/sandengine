@@ -10,10 +10,18 @@ layout(local_size_x = 16, local_size_y = 16, local_size_z = 1) in;
 
 #include "directions.glsl"
 #include "math.glsl"
+struct Material {
+    int id;
+    vec4 color;
+    float density;
+    vec4 emission;
+
+    int type;
+};
+#include "cell.glsl"
 //#include "materials.glsl"
 #include "gen/materials.glsl"
-#include "cell.glsl"
-#include "material_helpers.glsl"
+//#include "material_helpers.glsl"
 
 uniform sampler2D input_data;
 layout(rgba32f) uniform writeonly image2D output_data;
@@ -40,6 +48,22 @@ Cell[8] neighbours;
 #include "operations.glsl"
 #include "gen/rules.glsl"
 
+void rule_fall_slide2 (inout Cell self, inout Cell right, inout Cell down, inout Cell downright, ivec2 pos) {
+    // If the precondition isnt met, return
+    if (!(isType_movable_solid(self))) {
+        return;
+    }
+
+    if (down.mat.density < self.mat.density) {
+    swap(self, down);
+} else {
+    if (right.mat.density < self.mat.density || downright.mat.density < self.mat.density) {
+    swap(self, downright);
+} else {
+    
+}
+}
+}
 
 Cell simulate() {
     ivec2 pos = ivec2(floor(gl_GlobalInvocationID.xy));
@@ -57,8 +81,8 @@ Cell simulate() {
     Cell down = getCell(pos_rounded + DOWN);
     Cell downright = getCell(pos_rounded + DOWNRIGHT);
 
-    if (self.mat == EMPTY && right.mat == EMPTY && down.mat == EMPTY && downright.mat == EMPTY) {
-        return newCell(EMPTY, pos_rounded);
+    if (self.mat == MAT_EMPTY && right.mat == MAT_EMPTY && down.mat == MAT_EMPTY && downright.mat == MAT_EMPTY) {
+        return newCell(MAT_EMPTY, pos_rounded);
     }
 
     Cell up = getCell(pos_rounded + UP);
@@ -73,55 +97,58 @@ Cell simulate() {
     }
 
 
-    applyMirroredRules();
-    float ownDensity = self.mat.density;
+    applyMirroredRules(self, right, down, downright, pos_rounded);
+    rule_fall_slide2(self, right, down, downright, pos_rounded);
+    // float ownDensity = self.mat.density;
 
-    // The lower, the less likely it will be to fall diagonally, forming higher piles
-    // TODO: Make this a material property
-    float downspread = 0.7;
+    // // The lower, the less likely it will be to fall diagonally, forming higher piles
+    // // TODO: Make this a material property
+    // float downspread = 0.7;
 
-    // First process movable solids and if that fails, process liquid movements
-    if (shouldDoMovSolidStep(self)) {
-        if (down.mat.density < ownDensity) {
-            swap(self, down);
-        } else if (right.mat.density < ownDensity && downright.mat.density < ownDensity) {
-            if (rand1.z < downspread) swap(self, downright);
-        //  We couldnt move using movSolidStep, so now try liquid movement
-        } else if (shouldDoLiquidStep(self)) {
-            if (right.mat.density < ownDensity) {
-                swap(self, right);
-            }
-        }
-    } else if (shouldDoGasStep(down)) {
-        float gasDissolveChance = 0.01;
-        if (rand1.y < gasDissolveChance) {
-            down = newCell(EMPTY, pos_rounded);
-        } else {
-            if (!isSolid(self) && down.mat.density < self.mat.density) {
-                swap(down, self);
-            } else if (!isSolid(right) && down.mat.density < right.mat.density) {
-                swap(down, right);
-            }
-        }
-    } else if (shouldDoLiquidStep(down)) {
-        if (downright.mat.density < down.mat.density) {
-            swap(down, downright);
-        }
-    }
+    // // First process movable solids and if that fails, process liquid movements
+    // if (shouldDoMovSolidStep(self)) {
+    //     if (down.mat.density < ownDensity) {
+    //         swap(self, down);
+    //     } else if (right.mat.density < ownDensity && downright.mat.density < ownDensity) {
+    //         if (rand1.z < downspread) swap(self, downright);
+    //     //  We couldnt move using movSolidStep, so now try liquid movement
+    //     } else if (shouldDoLiquidStep(self)) {
+    //         if (right.mat.density < ownDensity) {
+    //             swap(self, right);
+    //         }
+    //     }
+    // }
+    
+    // if (shouldDoGasStep(down)) {
+    //     float gasDissolveChance = 0.01;
+    //     if (rand1.y < gasDissolveChance) {
+    //         down = newCell(EMPTY, pos_rounded);
+    //     } else {
+    //         if (!isSolid(self) && down.mat.density < self.mat.density) {
+    //             swap(down, self);
+    //         } else if (!isSolid(right) && down.mat.density < right.mat.density) {
+    //             swap(down, right);
+    //         }
+    //     }
+    // } else if (shouldDoLiquidStep(down)) {
+    //     if (downright.mat.density < down.mat.density) {
+    //         swap(down, downright);
+    //     }
+    // }
 
 
-    if (isEmpty(self)) {
-        if (isPlant(down)) {
-            if (rand1.x < 0.0001) self = newCell(VINE, pos_rounded);
-        } else if (down.mat == SAND && downright.mat == WATER) {
-            if (rand1.x < 0.01) self = newCell(VINE, pos_rounded);
-        }
-    }
+    // if (isEmpty(self)) {
+    //     if (isPlant(down)) {
+    //         if (rand1.x < 0.0001) self = newCell(VINE, pos_rounded);
+    //     } else if (down.mat == SAND && downright.mat == WATER) {
+    //         if (rand1.x < 0.01) self = newCell(VINE, pos_rounded);
+    //     }
+    // }
 
-    if (isPlant(self) && isEmpty(down) && isEmpty(right) && isEmpty(downright)) {
-        self = newCell(EMPTY, pos_rounded);
-        down = newCell(VINE, pos_rounded);
-    }
+    // if (isPlant(self) && isEmpty(down) && isEmpty(right) && isEmpty(downright)) {
+    //     self = newCell(EMPTY, pos_rounded);
+    //     down = newCell(VINE, pos_rounded);
+    // }
 
 
     if (shouldMirror) {
@@ -130,9 +157,9 @@ Cell simulate() {
     }
 
     if (!shouldMirror) {
-        applyRightRules(self, right, down, downright);
+        applyRightRules(self, right, down, downright, pos_rounded);
     } else {
-        applyLeftRules(self, right, down, downright);
+        applyLeftRules(self, right, down, downright, pos_rounded);
     }
 
     switch (marg_idx) {
@@ -147,7 +174,7 @@ Cell simulate() {
     }
 
     // Maybe pos
-    return newCell(EMPTY, pos_rounded);
+    return newCell(MAT_EMPTY, pos_rounded);
 }
 
 
@@ -159,7 +186,7 @@ void main() {
     };
 
     if (time < 0.1) {
-        setCell(pos, EMPTY, false);
+        setCell(pos, MAT_EMPTY, false);
     }
 
 

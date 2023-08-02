@@ -42,9 +42,9 @@ vec4 IDToCell(int id) {
 Cell getCell(ivec2 pos) {
     if (outOfBounds(pos)) {
         #ifdef SCREEN_IS_BORDER
-        return newCell(WALL, pos);
+        return newCell(MAT_WALL, pos);
         #endif // SCREEN_IS_BORDER
-        return newCell(NULL, pos);
+        return newCell(MAT_NULL, pos);
     };
     ivec4 data = ivec4(texelFetch(input_data, pos, 0));
     // data: ___id___  00000000  00000000  00000000
@@ -59,12 +59,12 @@ Cell getCell(ivec2 pos, ivec2 offset) {
 
 
 bool isCollider(Cell cell) {
-    return cell.mat != EMPTY && cell.mat != NULL && cell.mat != WALL;// && !isGas(cell) && !isLiquid(cell)
+    return cell.mat != MAT_EMPTY && cell.mat != MAT_NULL && cell.mat != MAT_WALL;// && !isGas(cell) && !isLiquid(cell)
 }
 
-bool isLightObstacle(Cell cell) {
-    return cell.mat.emission.rgb == vec3(0.0) && (isSolid(cell) || isMovSolid(cell));
-}
+// bool isLightObstacle(Cell cell) {
+//     return cell.mat.emission.rgb == vec3(0.0) && (isSolid(cell) || isMovSolid(cell));
+// }
 
 
 bool gt(vec3 a, vec3 b) {
@@ -75,7 +75,7 @@ void setCell(ivec2 pos, Cell cell, bool setCollision) {
     vec4 color = cell.mat.color;
     
     // TODO: Modify noise based on material
-    if (cell.mat != EMPTY) {
+    if (cell.mat != MAT_EMPTY) {
         float rand = noise(vec2(pos.x, pos.y), 3, 2.0, 0.25) * 0.25;
         color.r = clamp(color.r - rand, 0.0, 1.0);
         color.g = clamp(color.g - rand, 0.0, 1.0);
@@ -99,49 +99,49 @@ void setCell(ivec2 pos, Cell cell, bool setCollision) {
     
     vec4 ambientLight = vec4(vec3(0.3), 1.0);
     vec4 light;
-    if (cell.mat.emission.rgb != vec3(0.0)) {
-        light = cell.mat.emission;
-    } else if (pos.y == 0) {
-        light = vec4(vec3(1.0), 0.9999999);
-    } else {
-        vec3 avg_light = vec3(0.0);
-        vec3 max_light = vec3(0.0);
-        float avg_falloff = 0.0;
-        int num_falloff = 0;
+    // if (cell.mat.emission.rgb != vec3(0.0)) {
+    //     light = cell.mat.emission;
+    // } else if (pos.y == 0) {
+    //     light = vec4(vec3(1.0), 0.9999999);
+    // } else {
+    //     vec3 avg_light = vec3(0.0);
+    //     vec3 max_light = vec3(0.0);
+    //     float avg_falloff = 0.0;
+    //     int num_falloff = 0;
 
-        int num_lightsources = 0;
-        for (int n = 0; n < neighs.length(); n++) {
-            Cell neigh = neighCells[n];
-            ivec2 neighPos = neigh.pos;
-            bool neighObstacle = isLightObstacle(neigh);
-            vec4 light_data = texelFetch(input_light, neighPos, 0) * vec4(vec3(float(!neighObstacle)), 1.0);
-            if ((gt(light_data.rgb, vec3(0.0)) && light_data.a > 0.0) || neigh.mat == EMPTY) {
-                num_lightsources += 1;
-                vec3 light = light_data.rgb * light_data.a * (1/length(light_data.rgb));
-                avg_light += light;
-                if (light_data.a > 0.0) {
-                    avg_falloff += light_data.a;
-                    num_falloff += 1;
-                }
+    //     int num_lightsources = 0;
+    //     for (int n = 0; n < neighs.length(); n++) {
+    //         Cell neigh = neighCells[n];
+    //         ivec2 neighPos = neigh.pos;
+    //         bool neighObstacle = isLightObstacle(neigh);
+    //         vec4 light_data = texelFetch(input_light, neighPos, 0) * vec4(vec3(float(!neighObstacle)), 1.0);
+    //         if ((gt(light_data.rgb, vec3(0.0)) && light_data.a > 0.0) || neigh.mat == MAT_EMPTY) {
+    //             num_lightsources += 1;
+    //             vec3 light = light_data.rgb * light_data.a * (1/length(light_data.rgb));
+    //             avg_light += light;
+    //             if (light_data.a > 0.0) {
+    //                 avg_falloff += light_data.a;
+    //                 num_falloff += 1;
+    //             }
 
-                //               0.96, (light_data.a - (1.0 - light_data.a) * 100.0)
-                vec3 m = light * (light_data.a * 0.9);
-                max_light = max(max_light, m);
-            }
+    //             //               0.96, (light_data.a - (1.0 - light_data.a) * 100.0)
+    //             vec3 m = light * (light_data.a * 0.9);
+    //             max_light = max(max_light, m);
+    //         }
             
-        }
-        if (num_lightsources > 0) {
-            avg_light /= num_lightsources;
-        }
-        if (num_falloff> 0) {
-            avg_falloff /= float(num_falloff);
-        }
-        // Max light is fast but produces star like patterns and average is too slow, so lerp
-        //                                     0.1, 0.25
-        light = vec4(mix(avg_light.rgb, max_light, 0.25), avg_falloff);
+    //     }
+    //     if (num_lightsources > 0) {
+    //         avg_light /= num_lightsources;
+    //     }
+    //     if (num_falloff> 0) {
+    //         avg_falloff /= float(num_falloff);
+    //     }
+    //     // Max light is fast but produces star like patterns and average is too slow, so lerp
+    //     //                                     0.1, 0.25
+    //     light = vec4(mix(avg_light.rgb, max_light, 0.25), avg_falloff);
         
-    }
-    imageStore(output_light, pos, light);
+    // }
+    // imageStore(output_light, pos, light);
     
     // if (cell.mat == EMPTY) {
     //     //imageStore(output_color, pos, light);
@@ -153,15 +153,4 @@ void setCell(ivec2 pos, Cell cell, bool setCollision) {
 }
 void setCell(ivec2 pos, Material mat, bool setCollision) {
     setCell(pos, newCell(mat, pos), setCollision);
-}
-
-
-// Copies the data from another position to this position
-void pullCell(ivec2 from, ivec2 to) {
-    Cell other = getCell(from);
-    if (isSolid(other)) {
-        setCell(to, EMPTY, false);
-    } else {
-        setCell(to, other, false);
-    }
 }
