@@ -519,10 +519,10 @@ void rule_horizontal_slide (inout Cell self, inout Cell right, inout Cell down, 
     return;
 }
 
-    if (right.mat.density < self.mat.density) {
+    if (isType_liquid(self) && right.mat.density < self.mat.density) {
     swap(self, right);
 } else {
-    if (downright.mat.density < down.mat.density) {
+    if (isType_liquid(down) && downright.mat.density < down.mat.density) {
     swap(down, downright);
 } else {
     

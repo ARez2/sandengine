@@ -8,10 +8,10 @@ rules:
       do: SWAP SELF DOWNRIGHT
     mirrored: true
   horizontal_slide:
-    if: RIGHT.mat.density < SELF.mat.density
+    if: isType_liquid(SELF) and RIGHT.mat.density < SELF.mat.density
     do: SWAP SELF RIGHT
     else:
-      if: DOWNRIGHT.mat.density < DOWN.mat.density
+      if: isType_liquid(DOWN) and DOWNRIGHT.mat.density < DOWN.mat.density
       do: SWAP DOWN DOWNRIGHT
     mirrored: true
   rise_up:
