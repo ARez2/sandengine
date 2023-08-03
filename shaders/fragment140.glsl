@@ -18,6 +18,18 @@ vec3 saturate(vec3 x) { return clamp(x, vec3(0), vec3(1)); }
 
 
 
+//modified from https://www.shadertoy.com/view/ltfXWS, tested a few different versions of this same function and this one seemed to have the nicest results
+vec4 texture2DAA(sampler2D tex, vec2 uv) {
+    vec2 texsize = vec2(textureSize(tex,0));
+    vec2 uv_texspace = uv*texsize;
+    vec2 seam = floor(uv_texspace+.5);
+    uv_texspace = (uv_texspace-seam)/fwidth(uv_texspace)+seam;
+    uv_texspace = clamp(uv_texspace, seam-.5, seam+.5);
+    return texture(tex, uv_texspace/texsize);
+}
+
+
+
 float weight(float t, float log2radius, float gamma) {
     return exp(-gamma * pow(log2radius - t, 2.));
 }
