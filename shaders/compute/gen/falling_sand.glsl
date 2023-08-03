@@ -276,7 +276,7 @@ bool isType_plant(Cell cell) {
 #define MAT_NULL Material(1, vec4(1, 0, 1, 1), 0, vec4(0, 0, 0, 0), TYPE_NULL)
 #define MAT_WALL Material(2, vec4(0.1, 0.2, 0.3, 1), 9999, vec4(0, 0, 0, 0), TYPE_WALL)
 #define MAT_sand Material(3, vec4(1, 1, 0, 1), 1.5, vec4(0, 0, 0, 0), TYPE_movable_solid)
-#define MAT_rock Material(4, vec4(0.4, 0.4, 0.4, 1), 4, vec4(0, 0, 0, 0), TYPE_solid)
+#define MAT_rock Material(4, vec4(0.2, 0.2, 0.2, 1), 4, vec4(0, 0, 0, 0), TYPE_solid)
 #define MAT_water Material(5, vec4(0, 0, 1, 0.5), 1.5, vec4(0, 0, 0, 0), TYPE_liquid)
 #define MAT_radioactive Material(6, vec4(0.196, 0.55, 0.184, 1), 5, vec4(0.05, 0.7, 0.05, 0.9), TYPE_solid)
 #define MAT_smoke Material(7, vec4(0.3, 0.3, 0.3, 0.3), 0.1, vec4(0, 0, 0, 0), TYPE_gas)

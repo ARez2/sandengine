@@ -50,7 +50,7 @@ materials:
   
   rock:
     type: solid
-    color: [0.4, 0.4, 0.4]
+    color: [0.2, 0.2, 0.2]
     density: 4.0
 
   water:
