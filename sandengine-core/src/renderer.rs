@@ -76,17 +76,11 @@ impl Renderer {
 
         let vertex140_shader_src = include_str!("../../shaders/vertex140.glsl");
         let fragment140_shader_src = include_str!("../../shaders/fragment140.glsl");
-        let vertex110_shader_src = include_str!("../../shaders/vertex110.glsl");
-        let fragment110_shader_src = include_str!("../../shaders/fragment110.glsl");
         let draw_program = program!(&display,
             140 => {
                 vertex: vertex140_shader_src,
                 fragment: fragment140_shader_src
             },
-            110 => {
-                vertex: vertex110_shader_src,
-                fragment: fragment110_shader_src,
-            }
         );
         if let Err(err) = draw_program {
             if let ProgramChooserCreationError::ProgramCreationError(e) = err {
