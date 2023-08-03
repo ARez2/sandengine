@@ -73,6 +73,7 @@ rules:
         do: <action>
         chance: 0.1
         mirrored: true # default value: true
+        precondition: true
 ```
 
 ```yaml
@@ -95,7 +96,8 @@ do:
 else:
   if: condition 2
   do:
-    - some other actions
+    - some other
+    - actions
 ```
 
 #### Examples

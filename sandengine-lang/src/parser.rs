@@ -24,6 +24,7 @@ const GLOBAL_CELLS: [&'static str; 6] = [
 ];
 
 const DEFAULT_VAL_MIRRORED: bool = false;
+const DEFAULT_VAL_PRECONDITION: bool = true;
 
 
 #[derive(Debug, Error)]
@@ -81,7 +82,7 @@ pub struct SandRule {
     pub mirror: bool,
     /// Condition that needs to be true in order for the rule to be run.
     /// Can be either a material check or type check
-    pub precondition: String,
+    pub precondition: Option<String>,
     /// Whether the rule is used as a base_rule of a type of as extra_rule of a material
     pub used: bool,
 }
@@ -108,15 +109,19 @@ impl GLSLConvertible for SandRule {
             SandRuleType::Mirrored | SandRuleType::Right => "right",
             SandRuleType::Left => "left"
         };
+        let precond = match &self.precondition {
+            Some(cond) => format!(
+"if (!({})) {{
+    return;
+}}", cond),
+            None => String::new(),
+        };
         format!(
 "void rule_{} (inout Cell self, inout Cell {}, inout Cell down, inout Cell downright, ivec2 pos) {{
-    // If the precondition isnt met, return
-    if (!({})) {{
-        return;
-    }}
+    {}
 
     {}
-}}", self.name, directional_cell, self.precondition, SandRule::get_func_logic(self.if_conds.clone(), self.do_actions.clone()))
+}}", self.name, directional_cell, precond, SandRule::get_func_logic(self.if_conds.clone(), self.do_actions.clone()))
 
     }
 }
@@ -278,6 +283,7 @@ fn parse_rules(rules: &Mapping, material_names: Vec<String>) -> anyhow::Result<(
             }
         };
 
+        // TODO: Rule cant contain both LEFT and RIGHT, throw error if so
         let ruletype = match is_mirrored {
             true => SandRuleType::Mirrored,
             false => {
@@ -289,13 +295,34 @@ fn parse_rules(rules: &Mapping, material_names: Vec<String>) -> anyhow::Result<(
             }
         };
 
+
+        let do_precondition = {
+            let pre = key.1.get("precondition");
+            if let Some(pre) = pre {
+                if let Some(pre) = pre.as_bool() {
+                    pre
+                } else {
+                    bail!(ParsingErr::InvalidType {
+                        wrong_type: "precondition",
+                        missing_in: format!("rules/{}", name),
+                        expected: TYPE_HINT_BOOL })
+                }
+            } else {
+                DEFAULT_VAL_PRECONDITION
+            }
+        };
+        let precondition = match do_precondition {
+            true => Some(String::new()),
+            false => None
+        };
+
         let rule = SandRule {
             name,
             ruletype,
             if_conds,
             do_actions,
             mirror: is_mirrored,
-            precondition: String::new(),
+            precondition,
             used: false,
         };
         //println!("{:#?}", rule);
@@ -535,11 +562,13 @@ fn parse_types(types: &Mapping, rules: &mut Vec<SandRule>) -> anyhow::Result<(Ve
                             r.used = true;
                             base_rules.push(rulename.to_string());
                             accum_rules.push(rulename.to_string());
-
-                            if r.precondition.is_empty() {
-                                r.precondition = format!("isType_{}(self)", name);
-                            } else {
-                                r.precondition = format!("{} || isType_{}(self)", r.precondition, name);
+                            
+                            if let Some(precondition) = &mut r.precondition {
+                                if precondition.is_empty() {
+                                    r.precondition = Some(format!("isType_{}(self)", name));
+                                } else {
+                                    r.precondition = Some(format!("{} || isType_{}(self)", precondition, name));
+                                }
                             }
                             rule_valid = true;
                             break;
@@ -740,10 +769,12 @@ fn parse_materials(materials: &Mapping, rules: &mut Vec<SandRule>, types: &Vec<S
                         for r in rules.iter_mut() {
                             if r.name == extra_rule {
                                 r.used = true;
-                                if r.precondition.is_empty() {
-                                    r.precondition = format!("self.mat == MAT_{}", name);
-                                } else {
-                                    r.precondition = format!("{} || self.mat == MAT_{}", r.precondition, name)
+                                if let Some(precondition) = &mut r.precondition {
+                                    if precondition.is_empty() {
+                                        r.precondition = Some(format!("self.mat == MAT_{}", name));
+                                    } else {
+                                        r.precondition = Some(format!("{} || self.mat == MAT_{}", precondition, name));
+                                    }
                                 }
                                 extra_rules.push(extra_rule.to_string());
                             }
