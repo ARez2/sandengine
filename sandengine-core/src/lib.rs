@@ -66,7 +66,7 @@ pub fn run(parsing_result: sandengine_lang::parser::ParsingResult) {
             },
             Event::RedrawRequested(_) => {
                 renderer.start_render();
-                renderer.render_sim(&sim.output_color, &sim.output_light);
+                renderer.render_sim(&sim.output_color, &sim.output_light, &sim.background);
                 //renderer.render_ui();
                 renderer.finish_render();
             },

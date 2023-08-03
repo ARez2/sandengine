@@ -3,6 +3,7 @@
 uniform sampler2D color_tex;
 uniform sampler2D light_tex;
 uniform vec2 tex_size;
+uniform sampler2D background_tex;
 
 in vec2 v_tex_coords;
 
@@ -80,13 +81,17 @@ void main() {
     
     
     col.rgb *= ambientCol + occ * (1.0 - ambientCol);
+    col.rgb = clamp(col.rgb, vec3(0), vec3(1));
     // if (col.rgb == vec3(0.0)) {
     //     col.rgb = light;
     // } else {
     //     col.rgb = min(col.rgb + light, vec3(1.0));
     // }
 
-    f_color = col;
+    vec4 bg_col = texture(background_tex, vec2(v_tex_coords.x, 1.0 - v_tex_coords.y));
+    vec4 final_col = mix(bg_col, col, col.a);
+
+    f_color = final_col;
     //f_color = vec4(vec3(occ), 1.0);
     //f_color = light;
     //f_color = vec4(ambient, 1.0);
