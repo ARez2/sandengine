@@ -320,6 +320,8 @@ fn parse_rules(rules: &Mapping, material_names: Vec<String>) -> anyhow::Result<(
             false => None
         };
 
+        // TODO: Use chance key, add way to get random values
+
         let rule = SandRule {
             name,
             ruletype,
