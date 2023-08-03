@@ -350,6 +350,9 @@ void swap(inout vec4 a, inout vec4 b) {
     b = tmp;
 }
 void swap(inout Cell a, inout Cell b) {
+    if (a.mat.type == TYPE_WALL || b.mat.type == TYPE_WALL || a.mat.type == TYPE_NULL || b.mat.type == TYPE_NULL) {
+        return;
+    }
     Cell tmp = a;
     a = b;
     b = tmp;
