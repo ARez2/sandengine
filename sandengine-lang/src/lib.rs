@@ -23,6 +23,11 @@ pub fn create_glsl_from_parser(result: &ParsingResult) {
     for t in result.types.iter() {
         materials_types.push_str(t.get_glsl_code().as_str());
     };
+    // All checker functions may reference other types defined before this type,
+    // so first define all types, then all checker functions
+    for t in result.types.iter() {
+        materials_types.push_str(t.get_checker_func().as_str());
+    };
     materials_types.push('\n');
     let mut all_mats_list = String::new();
     for m in result.materials.iter() {

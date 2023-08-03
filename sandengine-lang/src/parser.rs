@@ -143,17 +143,21 @@ pub struct SandType {
     /// All accumulated rules, including parent rules
     pub accum_rules: Vec<String>
 }
-impl GLSLConvertible for SandType {
-    fn get_glsl_code(&self) -> String {
+impl SandType {
+    pub fn get_checker_func(&self) -> String {
         let mut typecheck = format!("return cell.mat.type == TYPE_{}", self.name);
         self.children.iter().for_each(|c| {
             typecheck.push_str(format!(" || cell.mat.type == TYPE_{}", c).as_str());
         });
-        format!("#define TYPE_{} {}
-
-bool isType_{}(Cell cell) {{
+        format!(
+"bool isType_{}(Cell cell) {{
     {};
-}}\n\n", self.name, self.id, self.name, typecheck)
+}}\n\n", self.name, typecheck)
+    }
+}
+impl GLSLConvertible for SandType {
+    fn get_glsl_code(&self) -> String {
+        format!("#define TYPE_{} {}\n\n", self.name, self.id)
     }
 }
 
@@ -412,6 +416,7 @@ fn parse_conditionals(parent: &Value, parent_is_else: bool, parent_path: String,
 fn parse_global_scope(parse_str: &mut String) {
     *parse_str = parse_str.replace(" or ", " || ");
     *parse_str = parse_str.replace(" and ", " && ");
+    *parse_str = parse_str.replace("not ", " !");
     
     *parse_str = parse_str.replace("empty", "MAT_EMPTY");
 
