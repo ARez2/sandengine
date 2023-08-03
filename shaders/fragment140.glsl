@@ -69,10 +69,10 @@ void main() {
 	float ar = tex_size.x / tex_size.y;
     vec2 pixelated_uv = floor(v_tex_coords / d) * d;
 
-    vec3 occ = 1.0 - vec3(sampleBlurred(color_tex, pixelated_uv, 1.0, 0.5).a);
-    vec3 occ2 = 1.0 - vec3(sampleBlurred(color_tex, pixelated_uv, 8.0, 0.35).a);
-    vec3 occ3 = 1.0 - vec3(sampleBlurred(color_tex, pixelated_uv, 16.0, 0.2).a);
-    occ += occ2 * 0.5 + occ3 * 0.75;
+    vec3 occ = 1.0 - vec3(sampleBlurred(color_tex, pixelated_uv, 2.0, 0.5).a);
+    vec3 occ2 = 1.0 - vec3(sampleBlurred(color_tex, pixelated_uv, 16.0, 0.35).a);
+    vec3 occ3 = 1.0 - vec3(sampleBlurred(color_tex, pixelated_uv, 32.0, 0.2).a);
+    occ += occ2 * 0.4 + occ3 * 0.25;
     occ = clamp(occ, vec3(0.0), vec3(1.0));
 
     float ambientCol = 0.01;
