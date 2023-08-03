@@ -521,7 +521,11 @@ void rule_horizontal_slide (inout Cell self, inout Cell right, inout Cell down, 
     if (right.mat.density < self.mat.density) {
     swap(self, right);
 } else {
+    if (downright.mat.density < down.mat.density) {
+    swap(down, downright);
+} else {
     
+}
 }
 }
 

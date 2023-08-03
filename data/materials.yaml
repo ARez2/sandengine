@@ -10,6 +10,9 @@ rules:
   horizontal_slide:
     if: RIGHT.mat.density < SELF.mat.density
     do: SWAP SELF RIGHT
+    else:
+      if: DOWNRIGHT.mat.density < DOWN.mat.density
+      do: SWAP DOWN DOWNRIGHT
     mirrored: true
 
 
