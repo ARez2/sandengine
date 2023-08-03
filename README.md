@@ -15,7 +15,8 @@ Even though the fragment and vertex shader use OpenGL version 1.4, the compute s
 
 ### Add physics
 
-- Simple Ray intersections
+- Simple Ray intersections GPU Side?
+- Or rapier/ nphysics2D on the CPU?
 
 ### Add sounds
 
