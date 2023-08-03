@@ -13,16 +13,6 @@ Even though the fragment and vertex shader use OpenGL version 1.4, the compute s
 
 #### Improve how Materials are defined
 
-- Remove need to define properties which arent important to that material (Add default values)
-    - Maybe proc gen the actual GLSL definitions and define the materials in a file? This way, properties not definied in the file, will just be assigned default values
-    - `serde_yaml` crate
-    - An Editor could simply work with that config file
-
-#### Improve definition of logic
-
-- Provide standardized logics for movable solids, liquids, gases which can be optionally added to a material (like `use movSolid, Liquid`)
-- Provide a way to easily define custom logic (maybe through a visual editor, see [this video by TodePond](https://www.youtube.com/watch?v=sQYUQNozljo))
-
 ### Add physics
 
 - Simple Ray intersections
@@ -31,74 +21,112 @@ Even though the fragment and vertex shader use OpenGL version 1.4, the compute s
 
 - ???
 
+
 ## YAML File for materials
 
 ### Global scope
 
+In general, most global scope things should be named in all uppercase so that you can recognize it and avoid confusion.
+
+#### Cells
+
 - `SELF` - The current cell
 - `DOWN` - The cell below
 - `RIGHT` - The cell to the right
+- (`LEFT` - The cell to the left; **automatically causes the rule to be assymetric (`mirrored: false`)**)
 - `DOWNRIGHT` - The cell down and to the right
 
 
 #### Keywords
 
-- `is` - Checks if something is an instance of a type or material (`typeof`)
-- `<`, `>`, `==`, `!=`, `&&`, `||` - Logical Operators
+- **WIP:** `is` - Checks if something is an instance of a type or material (`typeof`)
+- `<`, `>`, `==`, `!=`, `&&`/ `and`, `||`/ `or`, `not` - Logical Operators
 
 
 #### Functions
 
 - `SWAP <Cell 1> <Cell 2>` - Swaps both cells
+    - Example: `SWAP SELF DOWN`
 - `SET <Cell> <Material>` - Replaces the `Cell` with a new cell of that material
+    - Example: `SET SELF stone` (assuming there is a `stone` material)
+- `isType_<your type>(<Cell>)` - For each type defined in `types` there will be
+a checker function that returns true if the argument (for example `SELF`) is
+that type. **This accounts for inheritance, meaning if the type `plant` inherits**
+**the type `organism` (via `inherits: organism`) then**
+**`isType_organism(<some plant cell>)` will be true**
 
 
-#### Materials
+#### Materials and Types
 
-- `EMPTY` - The air/ empty value for a cell
-- `NULL` - The value that is returned if its nothing else
-- `WALL` - The material just outside the screen
+- (`TYPE_`)`EMPTY` - The air/ empty material/ type for a cell
+- (`TYPE_`)`NULL` - The material/ type that is returned if its nothing else is
+- (`TYPE_`)`WALL` - The material/ type just outside the screen
+
+Both `WALL` and `NULL` can not be swapped with another cell.
 
 
 ### Defining rules
 
 Rules will be processed in the order that they are defined.
 
-TODO: Decide on default value for mirrored
+#### IMPORTANT: Concept of mirrored rules
+
+This simulation uses the margolus offset, meaning each cell can only freely access groups of 2x2 pixels.
+That means that "normally" you would **only have access to the own pixel, right,**
+**down and downright** pixel.
+In order to not limit the user too strictly, after each frame the offset is **shifted**
+so that when you write `RIGHT` in a `if` or `do`, then you can assume that it
+will be either the left (`LEFT`) or right (`RIGHT`) cell depending on the frame.
+The same applies for `DOWNRIGHT`: It is __either__ the cell **down-right** from
+the current cell or the cell **down-left** depending on the frame.
+
+This is what is called mirroring in the YAML syntax and which can be turned off
+using the `mirrored: false` attribute.
+
+Doing this will cause the parser to look for either access of `LEFT` or `RIGHT`,
+turning it into a rule that will be only be run for one of the two options.
+
+#### Syntax
+
+The following lists all possible attributes of a rule, with the values being the default values:
 
 ```yaml
+# Collection of all rules, this field name cannot be changed and
+# will throw an error if non-existent
 rules:
+    # Name of the rule
     rulename:
+        # Condition that needs to be true in order for the do action to run
         if: <condition>
-        do: <action>
-        chance: 0.1
-        mirrored: true # default value: true
+        # Action that will be run when the if condition is true
+        do: <some action>
+        # Alternative do syntax (for multiple actions):
+        # do:
+        #     - <action 1>
+        #     - <action 2>
+        #     - ...
+        # OPTIONAL: Only if a random value from 0-1 is smaller than this value
+        # the do action will be run
+        chance: 1.0
+
+        # OPTIONAL: Provides an alternative path for when the if condition is false
+        else:
+            # OPTIONAL: The if here can be left out to always execute the do action
+            if: <condition>
+            do: <action>
+            # OPTIONAL: Same as the other chance
+            chance: 1.0
+
+        
+        # OPTIONAL: Whether the rule should be mirrored to the left
+        # see "Concept of mirrored rules"
+        mirrored: true
+        # OPTIONAL: The parser will detect on which type or material the rule was used and
+        # will only allow that specific type/ material to run the rule (if SELF is that mat/ type)
+        # Note, that if there is no precondition, the use of 'isType_<type>' is often neccesary
         precondition: true
 ```
 
-```yaml
-if: some condition
-do:
-  - SWAP SELF DOWN
-  - action 2
-else:
-  do:
-    - some other actions
-```
-
-OR
-
-```yaml
-if: some condition
-do:
-  - SWAP SELF DOWN
-  - action 2
-else:
-  if: condition 2
-  do:
-    - some other
-    - actions
-```
 
 #### Examples
 
@@ -112,15 +140,11 @@ rules:
 ```yaml
 rules:
     grow:
-        if: SELF is air && down is soil # Will be translated to `if self.mat == AIR && down.mat == SOIL`
-        do: set SELF plant # Will be translated to `self = newCell(PLANT, ...)`
-```
-
-```yaml
-rules:
-    evaporate:
-        if: (SELF is lava || SELF is fire) && DOWN is liquid
-        do: set DOWN smoke, swap(SELF, DOWN)
+        # check if there is a plant cell below us.
+        # Could also check for a specific material for example
+        # DOWN.mat == vine
+        if: isType_empty(SELF) and isType_plant(DOWN)
+        do: set SELF vine # vine is a material
 ```
 
 
@@ -128,22 +152,38 @@ rules:
 
 Types are just a collection of rules, coupled with inheritance.
 
-A parent type must be defined **before** the child (inheritant) can reference it.
+A parent type must be defined **before the child** (inheritant) can reference it.
 
 ```yaml
+# Collection of all types, this field name cannot be changed and
+# will throw an error if non-existent
 types:
+    # Name of the type
     typename:
-        inherits: something
-        base_rules: [
-            rule1,
-            rule2
-        ]
+        # OPTIONAL: Type of which to inherit all base_rules
+        inherits: <some type>
+        # OPTIONAL: List of rules that will be applied to all materials of that type
+        # Can be left out if empty
+        base_rules: []
 ```
+
 
 #### Examples
 
 ```yaml
 types:
+    organism:
+        base_rules: [
+            grow
+        ]
+    plant:
+        inherits: organism
+        # Note there are no base_rules here
+```
+
+```yaml
+types:
+    solid:
     movable_solid:
         base_rules: [
             gravity,
@@ -151,20 +191,50 @@ types:
         ]
 ```
 
-This would evaluate to
-`#define TYPE_MOVABLE_SOLID <index/ id>`
+```yaml
+rules:
+  fall_slide:
+    if: DOWN.mat.density < SELF.mat.density
+    do:
+      - SWAP SELF DOWN
+    else:
+      if: RIGHT.mat.density < SELF.mat.density and DOWNRIGHT.mat.density < SELF.mat.density
+      do: SWAP SELF DOWNRIGHT
+    mirrored: true
+  rise_up:
+    if: isType_gas(DOWN) and not isType_solid(SELF) and DOWN.mat.density < SELF.mat.density
+    do: SWAP DOWN SELF
+    else:
+      if: isType_gas(DOWN) and not isType_solid(RIGHT) and DOWN.mat.density < RIGHT.mat.density
+      do: SWAP DOWN RIGHT
+    precondition: false
+```
 
 
 ### Defining materials
 
 ```yaml
+# Collection of all materials, this field name cannot be changed and
+# will throw an error if non-existent
 materials:
+    # Name of the material
     materialname:
-        color: [1.0, 0.5, 0.0, 1.0]
-        emission: [0.0, 0.0, 0.0, 0.0] # all values zero mean no emission
-        type: <type> # By specifying a type, this material inherits all rules of the base type
+        # The color of the material, valid options for defining it are:
+        # color: [255, 0, 255, 255]
+        # color: [255, 0, 255] # Note, only 3 values with assume alpha is 1
+        # color: [1.0, 0, 255, 0.3] # Example of mixed types
+        color: [1.0, 0.0, 1.0, 1.0]
+        # OPTIONAL: How much light the material should emit
+        # See the color attribute for possible ways of defining the value
+        emission: [0.0, 0.0, 0.0, 0.0]
+        # By specifying a type, this material inherits all rules of the base type
+        type: <type>
+        # OPTIONAL: Whether the material can be selectable with NUM_0-9 or the UI
         selectable: true
+        # Density of the material, used for swapping and vertical ordering of materials
         density: 2.2
+        # OPTIONAL: Add some rules here which are unique to this material
+        # and cannot be added to the type
         extra_rules: [
             somerule
         ]
@@ -174,14 +244,24 @@ materials:
 
 ```yaml
 materials:
-    lava:
-        color: [0.9, 0.2, 0.1, 1.0]
-        emission: [1.0, 0.0, 0.0, 1.0]
-        type: liquid
-        selectable: true
-        density: 1.2
-        extra_rules: [
-            evaporate
-        ]
+  sand:
+    type: movable_solid
+    color: [1.0, 1.0, 0]
+    density: 1.5
+  
+  rock:
+    type: solid
+    color: [0.2, 0.2, 0.2]
+    density: 4.0
 
+  water:
+    type: liquid
+    color: [0.0, 0.0, 1.0, 0.5]
+    density: 1.5
+
+  radioactive:
+    type: solid
+    color: [0.196, 0.55, 0.184]
+    emission: [0.05, 0.7, 0.05, 0.9]
+    density: 5.0
 ```
