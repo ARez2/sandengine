@@ -7,6 +7,10 @@ rules:
       if: RIGHT.mat.density < SELF.mat.density and DOWNRIGHT.mat.density < SELF.mat.density
       do: SWAP SELF DOWNRIGHT
     mirrored: true
+  horizontal_slide:
+    if: RIGHT.mat.density < SELF.mat.density
+    do: SWAP SELF RIGHT
+    mirrored: true
 
 
 types:
@@ -16,6 +20,10 @@ types:
         fall_slide
     ]
   liquid:
+    base_rules: [
+        fall_slide,
+        horizontal_slide
+    ]
   gas:
   plant:
 

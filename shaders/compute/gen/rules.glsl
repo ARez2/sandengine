@@ -2,7 +2,7 @@
 // =============== RULES ===============
 void rule_fall_slide (inout Cell self, inout Cell right, inout Cell down, inout Cell downright, ivec2 pos) {
     // If the precondition isnt met, return
-    if (!(isType_movable_solid(self))) {
+    if (!(isType_movable_solid(self) || isType_liquid(self))) {
         return;
     }
 
@@ -17,6 +17,19 @@ void rule_fall_slide (inout Cell self, inout Cell right, inout Cell down, inout 
 }
 }
 
+void rule_horizontal_slide (inout Cell self, inout Cell right, inout Cell down, inout Cell downright, ivec2 pos) {
+    // If the precondition isnt met, return
+    if (!(isType_liquid(self))) {
+        return;
+    }
+
+    if (right.mat.density < self.mat.density) {
+    swap(self, right);
+} else {
+    
+}
+}
+
 
 
 
@@ -28,6 +41,7 @@ void applyMirroredRules(
     inout Cell downright,
     ivec2 pos) {
     rule_fall_slide(self, right, down, downright, pos);
+rule_horizontal_slide(self, right, down, downright, pos);
 }
 
 

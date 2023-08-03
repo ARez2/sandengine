@@ -32,7 +32,7 @@ pub fn run(parsing_result: sandengine_lang::parser::ParsingResult) {
             None
         }
     }).collect();
-    println!("Selectable: {:?}", selectable_materials);
+    //println!("Selectable: {:?}", selectable_materials);
 
 
     let size = (640, 480);
