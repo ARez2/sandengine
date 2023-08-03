@@ -56,7 +56,7 @@ materials:
   water:
     type: liquid
     color: [0.0, 0.0, 1.0, 0.5]
-    density: 1.5
+    density: 1.3
 
   radioactive:
     type: solid
