@@ -225,47 +225,47 @@ Cell newCell(Material mat, ivec2 pos) {
 
 //#include "materials.glsl"#define TYPE_EMPTY 0
 
+#define TYPE_NULL 1
+
+#define TYPE_WALL 2
+
+#define TYPE_solid 3
+
+#define TYPE_movable_solid 4
+
+#define TYPE_liquid 5
+
+#define TYPE_gas 6
+
+#define TYPE_plant 7
+
 bool isType_EMPTY(Cell cell) {
     return cell.mat.type == TYPE_EMPTY;
 }
-
-#define TYPE_NULL 1
 
 bool isType_NULL(Cell cell) {
     return cell.mat.type == TYPE_NULL;
 }
 
-#define TYPE_WALL 2
-
 bool isType_WALL(Cell cell) {
     return cell.mat.type == TYPE_WALL;
 }
 
-#define TYPE_solid 3
-
 bool isType_solid(Cell cell) {
-    return cell.mat.type == TYPE_solid;
+    return cell.mat.type == TYPE_solid || cell.mat.type == TYPE_movable_solid;
 }
-
-#define TYPE_movable_solid 4
 
 bool isType_movable_solid(Cell cell) {
     return cell.mat.type == TYPE_movable_solid;
 }
 
-#define TYPE_liquid 5
-
 bool isType_liquid(Cell cell) {
     return cell.mat.type == TYPE_liquid;
 }
 
-#define TYPE_gas 6
-
 bool isType_gas(Cell cell) {
     return cell.mat.type == TYPE_gas;
 }
-
-#define TYPE_plant 7
 
 bool isType_plant(Cell cell) {
     return cell.mat.type == TYPE_plant;
@@ -496,10 +496,9 @@ void setCell(ivec2 pos, Material mat, bool setCollision) {
 
 // =============== RULES ===============
 void rule_fall_slide (inout Cell self, inout Cell right, inout Cell down, inout Cell downright, ivec2 pos) {
-    // If the precondition isnt met, return
     if (!(isType_movable_solid(self) || isType_liquid(self))) {
-        return;
-    }
+    return;
+}
 
     if (down.mat.density < self.mat.density) {
     swap(self, down);
@@ -513,16 +512,29 @@ void rule_fall_slide (inout Cell self, inout Cell right, inout Cell down, inout 
 }
 
 void rule_horizontal_slide (inout Cell self, inout Cell right, inout Cell down, inout Cell downright, ivec2 pos) {
-    // If the precondition isnt met, return
     if (!(isType_liquid(self))) {
-        return;
-    }
+    return;
+}
 
     if (right.mat.density < self.mat.density) {
     swap(self, right);
 } else {
     if (downright.mat.density < down.mat.density) {
     swap(down, downright);
+} else {
+    
+}
+}
+}
+
+void rule_rise_up (inout Cell self, inout Cell right, inout Cell down, inout Cell downright, ivec2 pos) {
+    
+
+    if (isType_gas(down) &&  !isType_solid(self) && down.mat.density < self.mat.density) {
+    swap(down, self);
+} else {
+    if (isType_gas(down) &&  !isType_solid(right) && down.mat.density < right.mat.density) {
+    swap(down, right);
 } else {
     
 }
@@ -559,7 +571,7 @@ void applyRightRules(
     inout Cell down,
     inout Cell downright,
     ivec2 pos) {
-    
+    rule_rise_up(self, right, down, downright, pos);
 }
 
 

@@ -1,10 +1,9 @@
 
 // =============== RULES ===============
 void rule_fall_slide (inout Cell self, inout Cell right, inout Cell down, inout Cell downright, ivec2 pos) {
-    // If the precondition isnt met, return
     if (!(isType_movable_solid(self) || isType_liquid(self))) {
-        return;
-    }
+    return;
+}
 
     if (down.mat.density < self.mat.density) {
     swap(self, down);
@@ -18,16 +17,29 @@ void rule_fall_slide (inout Cell self, inout Cell right, inout Cell down, inout 
 }
 
 void rule_horizontal_slide (inout Cell self, inout Cell right, inout Cell down, inout Cell downright, ivec2 pos) {
-    // If the precondition isnt met, return
     if (!(isType_liquid(self))) {
-        return;
-    }
+    return;
+}
 
     if (right.mat.density < self.mat.density) {
     swap(self, right);
 } else {
     if (downright.mat.density < down.mat.density) {
     swap(down, downright);
+} else {
+    
+}
+}
+}
+
+void rule_rise_up (inout Cell self, inout Cell right, inout Cell down, inout Cell downright, ivec2 pos) {
+    
+
+    if (isType_gas(down) &&  !isType_solid(self) && down.mat.density < self.mat.density) {
+    swap(down, self);
+} else {
+    if (isType_gas(down) &&  !isType_solid(right) && down.mat.density < right.mat.density) {
+    swap(down, right);
 } else {
     
 }
@@ -64,5 +76,5 @@ void applyRightRules(
     inout Cell down,
     inout Cell downright,
     ivec2 pos) {
-    
+    rule_rise_up(self, right, down, downright, pos);
 }

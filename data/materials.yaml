@@ -14,11 +14,19 @@ rules:
       if: DOWNRIGHT.mat.density < DOWN.mat.density
       do: SWAP DOWN DOWNRIGHT
     mirrored: true
+  rise_up:
+    if: isType_gas(DOWN) and not isType_solid(SELF) and DOWN.mat.density < SELF.mat.density
+    do: SWAP DOWN SELF
+    else:
+      if: isType_gas(DOWN) and not isType_solid(RIGHT) and DOWN.mat.density < RIGHT.mat.density
+      do: SWAP DOWN RIGHT
+    precondition: false
 
 
 types:
   solid:
   movable_solid:
+    inherits: solid
     base_rules: [
         fall_slide
     ]
@@ -28,6 +36,9 @@ types:
         horizontal_slide
     ]
   gas:
+    base_rules: [
+      rise_up
+    ]
   plant:
 
 

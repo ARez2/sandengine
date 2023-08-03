@@ -1,46 +1,46 @@
 #define TYPE_EMPTY 0
 
+#define TYPE_NULL 1
+
+#define TYPE_WALL 2
+
+#define TYPE_solid 3
+
+#define TYPE_movable_solid 4
+
+#define TYPE_liquid 5
+
+#define TYPE_gas 6
+
+#define TYPE_plant 7
+
 bool isType_EMPTY(Cell cell) {
     return cell.mat.type == TYPE_EMPTY;
 }
-
-#define TYPE_NULL 1
 
 bool isType_NULL(Cell cell) {
     return cell.mat.type == TYPE_NULL;
 }
 
-#define TYPE_WALL 2
-
 bool isType_WALL(Cell cell) {
     return cell.mat.type == TYPE_WALL;
 }
 
-#define TYPE_solid 3
-
 bool isType_solid(Cell cell) {
-    return cell.mat.type == TYPE_solid;
+    return cell.mat.type == TYPE_solid || cell.mat.type == TYPE_movable_solid;
 }
-
-#define TYPE_movable_solid 4
 
 bool isType_movable_solid(Cell cell) {
     return cell.mat.type == TYPE_movable_solid;
 }
 
-#define TYPE_liquid 5
-
 bool isType_liquid(Cell cell) {
     return cell.mat.type == TYPE_liquid;
 }
 
-#define TYPE_gas 6
-
 bool isType_gas(Cell cell) {
     return cell.mat.type == TYPE_gas;
 }
-
-#define TYPE_plant 7
 
 bool isType_plant(Cell cell) {
     return cell.mat.type == TYPE_plant;
