@@ -2,14 +2,14 @@ pub mod parser;
 use std::path::PathBuf;
 
 use colored::Colorize;
-use parser::{parse_string, GLSLConvertible, ParsingResult};
+pub use parser::{parse_string, GLSLConvertible, ParsingResult};
 
 // TODO: Create a validator function (extra file) that checks every if/ do condition??
 
 /// Reads a file to a string and parses that string using the parser
-pub fn parse(filepath: PathBuf) -> anyhow::Result<ParsingResult> {
+pub fn parse_path(filepath: PathBuf) -> anyhow::Result<ParsingResult> {
     let f = std::fs::read_to_string(filepath).unwrap();
-    parse_string(f)
+    parse_string(&f)
 }
 
 

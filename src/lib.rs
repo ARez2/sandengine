@@ -3,13 +3,11 @@ use colored::Colorize;
 
 pub extern crate sandengine_lang;
 
+const YAML_DATA: &'static str = include_str!("../data/materials.yaml");
 
 /// Parses the YAML data file(s), builds the compute shader and finally runs the engine
 pub fn run() {
-    let cwd = std::env::current_dir().unwrap();
-    let filepath = cwd.join("data")
-        .join("materials.yaml");
-    let parse_res = sandengine_lang::parse(filepath);
+    let parse_res = sandengine_lang::parse_string(YAML_DATA);
     match parse_res {
         Ok(result) => {
             // println!("{}{:#?}", "Rules: ".bold(), result.rules);

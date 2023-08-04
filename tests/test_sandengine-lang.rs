@@ -3,7 +3,7 @@ use sandengine_lang::parser::parse_string;
 #[test]
 #[should_panic = "No 'rules' found in input file"]
 fn missing_rules() {
-    let _ = parse_string(String::from("
+    let _ = parse_string("
     types:
         movable_solid:
             base_rules: [
@@ -18,14 +18,14 @@ fn missing_rules() {
             type: movable_solid
             density: 1.5
             selectable: true
-    "));
+    ");
 }
 
 
 #[test]
 #[should_panic = "No 'types' found in input file"]
 fn missing_types() {
-    let _ = parse_string(String::from("
+    let _ = parse_string("
     rules:
         gravity:
             if: DOWN.density < SELF.density
@@ -42,14 +42,14 @@ fn missing_types() {
             type: movable_solid
             density: 1.5
             selectable: true
-    "));
+    ");
 }
 
 
 #[test]
 #[should_panic = "No 'materials' found in input file"]
 fn missing_materials() {
-    let _ = parse_string(String::from("
+    let _ = parse_string("
     rules:
         gravity:
             if: DOWN.density < SELF.density
@@ -67,13 +67,13 @@ fn missing_materials() {
                 gravity,
                 slide_diagonally
             ]
-    "));
+    ");
 }
 
 
 #[test]
 fn invalid_name() {
-    let res = parse_string(String::from("
+    let res = parse_string("
     rules:
         1.0:
             if: DOWN.density < SELF.density
@@ -83,13 +83,13 @@ fn invalid_name() {
             if: DOWNRIGHT.density < SELF.density
             do: swap(SELF, DOWNRIGHT)
             mirrored: true
-    "));
+    ");
     assert!(res.err().unwrap().to_string().contains(&"InvalidType"));
 }
 
 #[test]
 fn missing_field() {
-    let res = parse_string(String::from("
+    let res = parse_string("
     rules:
         gravity:
             #if: DOWN.density < SELF.density
@@ -99,10 +99,10 @@ fn missing_field() {
             if: DOWNRIGHT.density < SELF.density
             do: swap(SELF, DOWNRIGHT)
             mirrored: true
-    "));
+    ");
     assert!(res.err().unwrap().to_string().contains(&"MissingField"));
 
-    let res = parse_string(String::from("
+    let res = parse_string("
     rules:
         gravity:
             if: DOWN.density < SELF.density
@@ -128,14 +128,14 @@ fn missing_field() {
             type: movable_solid
             density: 1.5
             selectable: true
-    "));
+    ");
     assert!(res.err().unwrap().to_string().contains(&"MissingField"));
 }
 
 
 #[test]
 fn not_found() {
-    let res = parse_string(String::from("
+    let res = parse_string("
     rules:
         gravity:
             if: DOWN.density < SELF.density
@@ -161,6 +161,6 @@ fn not_found() {
             type: liquid
             density: 1.5
             selectable: true
-    "));
+    ");
     assert!(res.err().unwrap().to_string().contains(&"NotFound"));
 }

@@ -227,9 +227,9 @@ pub struct ParsingResult {
 
 
 /// Parses a string (YAML syntax) and converts it into Rust structs holding the data
-pub fn parse_string(f: String) -> anyhow::Result<ParsingResult> {
+pub fn parse_string(f: &str) -> anyhow::Result<ParsingResult> {
     // Convert the string into a serde_yaml object
-    let data: Result<_, serde_yaml::Error> = serde_yaml::from_str(&f);
+    let data: Result<_, serde_yaml::Error> = serde_yaml::from_str(f);
     if let Err(err) = data {
         bail!(err);
     }
