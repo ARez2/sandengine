@@ -1,4 +1,4 @@
-# Sandengine - a falling sand simulation written in GLSL and Rust
+# Sandengine - a falling sand simulation engine written in GLSL and Rust
 
 
 ## A note on compatibility
