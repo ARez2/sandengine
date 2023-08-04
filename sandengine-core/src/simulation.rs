@@ -4,6 +4,9 @@ use image::{io::Reader as ImageReader, GenericImageView};
 use sandengine_lang::parser::SandMaterial;
 
 
+const COMPUTE_SHADER_SRC: &'static str = include_str!("../../shaders/compute/gen/falling_sand.glsl");
+
+
 #[repr(C)]
 #[derive(Clone, Default)]
 #[allow(non_snake_case)]
@@ -65,12 +68,7 @@ impl Simulation {
         let current_dir = std::env::current_dir().unwrap();
 
         // Creates the shader program
-        let shader_src = std::fs::read_to_string(current_dir
-                .join("shaders")
-                .join("compute")
-                .join("gen")
-                .join("falling_sand.glsl")).unwrap();
-        let program = glium::program::ComputeShader::from_source(display, shader_src.as_str());
+        let program = glium::program::ComputeShader::from_source(display, COMPUTE_SHADER_SRC);
         if let Err(err) = program {
             println!("{}", err);
             panic!();

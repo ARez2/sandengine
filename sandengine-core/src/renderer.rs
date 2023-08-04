@@ -6,6 +6,8 @@ use imgui_winit_support::WinitPlatform;
 use nphysics2d::nalgebra::Point2;
 use rayon::prelude::*;
 
+const APPLICATION_ICON: &'static [u8] = include_bytes!("../../icon.png");
+
 #[derive(Copy, Clone)]
 struct Vertex {
     position: [f32; 2],
@@ -74,8 +76,8 @@ impl Renderer {
 
         // Loads the application (window) icon
         let (icon_rgba, icon_width, icon_height) = {
-            let image = image::open("icon.png")
-                .expect("Failed to open icon path")
+            let image = image::load_from_memory(APPLICATION_ICON)
+                .expect("Failed to load application icon")
                 .into_rgba8();
             let (width, height) = image.dimensions();
             let rgba = image.into_raw();
