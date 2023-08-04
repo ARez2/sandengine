@@ -6,7 +6,10 @@ pub extern crate sandengine_lang;
 
 /// Parses the YAML data file(s), builds the compute shader and finally runs the engine
 pub fn run() {
-    let parse_res = sandengine_lang::parse();
+    let cwd = std::env::current_dir().unwrap();
+    let filepath = cwd.join("data")
+        .join("materials.yaml");
+    let parse_res = sandengine_lang::parse(filepath);
     match parse_res {
         Ok(result) => {
             // println!("{}{:#?}", "Rules: ".bold(), result.rules);
