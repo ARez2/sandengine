@@ -23,7 +23,7 @@ Even though the fragment and vertex shader use OpenGL version 1.4, the compute s
 - ???
 
 
-## YAML File for materials
+## YAML File Syntax
 
 ### Global scope
 
@@ -266,3 +266,29 @@ materials:
     emission: [0.05, 0.7, 0.05, 0.9]
     density: 5.0
 ```
+
+
+## Project structure
+
+This binary crate is a collection of library crates related to the **sandengine**.
+
+### `sandengine-core`
+
+Responsible for:
+
+- Running the compute shader which simulates everything
+- Rendering the simulation
+- Rendering the UI
+
+### `sandengine-lang`
+
+Responsible for:
+
+- Reading in the [YAML File](#yaml-file-syntax), defining rules, types and materials
+- Parsing that input and producing Rust structs, holding the information
+included in the the [YAML File](#yaml-file-syntax)
+- Converting those structs into valid GLSL code (located under [shaders/compute/gen](https://github.com/ARez2/sandengine/tree/main/shaders/compute/gen))
+
+### `data` folder
+
+Holds textures, assets and the [YAML File](#yaml-file-syntax).
