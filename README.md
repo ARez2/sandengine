@@ -3,7 +3,9 @@
 
 ## A note on compatibility
 
-Even though the fragment and vertex shader use OpenGL version 1.4, the compute shaders which runs the simulation requires OpenGL 4.3 (version, where compute shaders were introduced).
+Even though the fragment and vertex shader use OpenGL version 1.4, the compute
+shaders which runs the simulation requires OpenGL 4.3 (version, where compute
+shaders were introduced).
 
 
 
