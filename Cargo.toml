@@ -19,3 +19,7 @@ exclude = [
 colored = "2.0.4"
 sandengine-core = {path = "sandengine-core"}
 sandengine-lang = {path = "sandengine-lang"}
+
+[build-dependencies]
+copy_to_output = "1.0"
+glob = "0.3"
