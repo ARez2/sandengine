@@ -34,23 +34,36 @@ const QUAD: [Vertex; 4] = [
 ];
 
 #[derive(Debug, Clone, Copy, PartialEq)]
+/// Helper to define how a texture is rendered by the Renderer
 pub enum TextureDrawMode {
+    /// Stretches the texture across the screen
     Stretch,
+    /// Keeps the original size
     KeepScale,
+    /// Scales the texture to the given Size
     Scale(glium::glutin::dpi::PhysicalSize<u32>),
 }
 
+
+/// Renderer for displaying the simulation and UI
 pub struct Renderer {
+    /// Program that includes the fragment/ vertex shader
     draw_program: Program,
+    /// The display, used for drawing
     pub display: glium::Display,
+    /// The window handle
     winit_platform: WinitPlatform,
+    /// imgui (UI) context
     imgui_context: imgui::Context,
+    /// Imgui renderer
     ui_renderer: imgui_glium_renderer::Renderer,
 
+    /// Holds the frame, once the start_render function is called
     current_frame: Option<Frame>,
 }
 
 impl Renderer {
+    /// Creates a new renderer
     pub fn new(size: (u32, u32), event_loop: &EventLoop<()>) -> Self {
         let wb = glutin::window::WindowBuilder::new()
             .with_inner_size(PhysicalSize::<u32>::from(size))
@@ -59,6 +72,7 @@ impl Renderer {
         let cb = glutin::ContextBuilder::new().with_gl(glutin::GlRequest::Latest); //.with_vsync(true)
         let display = glium::Display::new(wb, cb, event_loop).unwrap();
 
+        // Loads the application (window) icon
         let (icon_rgba, icon_width, icon_height) = {
             let image = image::open("icon.png")
                 .expect("Failed to open icon path")
@@ -74,6 +88,7 @@ impl Renderer {
         let ui_renderer = imgui_glium_renderer::Renderer::init(&mut imgui_context, &display)
             .expect("Failed to initialize UI renderer");
 
+        // Builds the program, that draws everything
         let vertex140_shader_src = include_str!("../../shaders/vertex140.glsl");
         let fragment140_shader_src = include_str!("../../shaders/fragment140.glsl");
         let draw_program = program!(&display,
@@ -103,6 +118,7 @@ impl Renderer {
         }
     }
 
+    /// Helper function to set up ImGui
     fn imgui_init(
         display: &glium::Display,
     ) -> (imgui_winit_support::WinitPlatform, imgui::Context) {
@@ -129,6 +145,7 @@ impl Renderer {
         (winit_platform, imgui_context)
     }
 
+    /// Prepares the renderer to start drawing
     pub fn prepare_frame(&mut self) {
         let gl_window = self.display.gl_window();
         self.winit_platform
@@ -145,6 +162,7 @@ impl Renderer {
         self.imgui_context.io_mut().update_delta_time(delta);
     }
 
+    /// Let the UI handle the (input) event and return whether it has been consumed
     pub fn process_events(&mut self, event: &Event<()>) -> bool {
         let gl_window = self.display.gl_window();
         self.winit_platform
@@ -153,6 +171,7 @@ impl Renderer {
         self.imgui_context.io().want_capture_mouse || self.imgui_context.io().want_capture_keyboard
     }
 
+    /// Starts drawing, clearing the screen before
     pub fn start_render(&mut self) {
         let mut target = self.display.draw();
         target.clear_color(0.0, 0.5, 0.0, 1.0);
@@ -160,6 +179,7 @@ impl Renderer {
         self.current_frame = Some(target);
     }
 
+    /// Calls the imgui (UI) renderer
     pub fn render_ui(&mut self) {
         // Create frame for the all important `&imgui::Ui`
         let ui = self.imgui_context.frame();
@@ -177,6 +197,7 @@ impl Renderer {
         }
     }
 
+    /// Renders the simulation, including providing uniforms for the fragment and vertex shaders
     pub fn render_sim(
         &mut self,
         texture: &glium::Texture2d,
@@ -244,6 +265,7 @@ impl Renderer {
         }
     }
 
+    /// Finishes drawing and displays it on the screen
     pub fn finish_render(&mut self) {
         if let Some(f) = self.current_frame.take() {
             f.finish().unwrap();

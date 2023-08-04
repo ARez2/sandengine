@@ -24,7 +24,10 @@ use physics::Physics;
 
 // TODO: make a texture for input. All pixels on that will be setCell'ed and then cleared.
 
+
+/// Core function of the engine. Includes the event loop with simulation, rendering and UI
 pub fn run(parsing_result: sandengine_lang::parser::ParsingResult) {
+    // Collects a list of selectable materials, given all the SandMaterial structs from the parser
     let selectable_materials: Vec<SandMaterial> = parsing_result.materials.iter().filter_map(|m| {
         if m.selectable {
             Some(m.clone())

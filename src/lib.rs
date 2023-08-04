@@ -3,6 +3,8 @@ use colored::Colorize;
 
 pub extern crate sandengine_lang;
 
+
+/// Parses the YAML data file(s), builds the compute shader and finally runs the engine
 pub fn run() {
     let parse_res = sandengine_lang::parse();
     match parse_res {
@@ -23,7 +25,7 @@ pub fn run() {
 }
 
 
-
+/// Processes the GLSL files and resolves the #include statements
 fn build_compute_shaders() {
     let shaderpath = std::path::PathBuf::from_str("shaders/compute").unwrap();
     std::fs::read_dir(shaderpath.clone()).unwrap().filter(|f| {
