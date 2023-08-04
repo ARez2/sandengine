@@ -140,6 +140,7 @@ impl Simulation {
 
         unsafe {
             self.output_color.generate_mipmaps();
+            //self.output_light.generate_mipmaps();
         }
     }
 }

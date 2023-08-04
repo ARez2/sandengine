@@ -181,7 +181,8 @@ impl Renderer {
         &mut self,
         texture: &glium::Texture2d,
         light_texture: &glium::Texture2d,
-        background: &glium::Texture2d
+        background: &glium::Texture2d,
+        frame_nr: i32
     ) {
         if let Some(target) = &mut self.current_frame {
             let index_buffer =
@@ -194,7 +195,8 @@ impl Renderer {
                     .minify_filter(uniforms::MinifySamplerFilter::LinearMipmapNearest),
                 light_tex: light_texture,
                 tex_size: (texture.dimensions().0 as f32, texture.dimensions().1 as f32),
-                background_tex: background
+                background_tex: background,
+                frame: frame_nr
             };
 
             let draw_parameters = DrawParameters::default();

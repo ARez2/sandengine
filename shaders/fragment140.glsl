@@ -4,6 +4,7 @@ uniform sampler2D color_tex;
 uniform sampler2D light_tex;
 uniform vec2 tex_size;
 uniform sampler2D background_tex;
+uniform int frame;
 
 in vec2 v_tex_coords;
 
@@ -69,17 +70,15 @@ vec4 sampleTexAA(sampler2D ch, vec2 uv)
 
 
 void main() {
-    vec4 col = texture(color_tex, v_tex_coords, 0.0);
-    //vec3 light = texture(light_tex, v_tex_coords).rgb;
-    vec4 light = texture(light_tex, v_tex_coords);
-    
-    // Occlude ambient color but subtract light
-    
-    //float pixelate = sqrt(tex_size.x*tex_size.y);
     float pixelate = tex_size.x / 2;
     float d = 1.0 / pixelate;
 	float ar = tex_size.x / tex_size.y;
     vec2 pixelated_uv = floor(v_tex_coords / d) * d;
+
+    vec4 col = texture(color_tex, v_tex_coords, 0.0);
+
+    vec3 light = texture(light_tex, pixelated_uv, 0.0).rgb;
+    light = clamp(light, vec3(0.0), vec3(1.0));
 
     vec3 occ = 1.0 - vec3(sampleBlurred(color_tex, pixelated_uv, 2.0, 0.5).a);
     vec3 occ2 = 1.0 - vec3(sampleBlurred(color_tex, pixelated_uv, 16.0, 0.35).a);
@@ -87,24 +86,21 @@ void main() {
     occ += occ2 * 0.4 + occ3 * 0.25;
     occ = clamp(occ, vec3(0.0), vec3(1.0));
 
-    float ambientCol = 0.01;
-    vec3 ambient = vec3(0.5, 0.5, 0.5) * (1.0 - pixelated_uv.y);
+    float ambientCol = 0.1;
+    vec3 skylight = vec3(0.5) * (1.0 - pixelated_uv.y);
 
-    
-    
     col.rgb *= ambientCol + occ * (1.0 - ambientCol);
     col.rgb = clamp(col.rgb, vec3(0), vec3(1));
-    // if (col.rgb == vec3(0.0)) {
-    //     col.rgb = light;
-    // } else {
-    //     col.rgb = min(col.rgb + light, vec3(1.0));
-    // }
 
     vec4 bg_col = texture(background_tex, vec2(v_tex_coords.x, 1.0 - v_tex_coords.y));
+    // bg_col * vec4(ambientCol + light, 1.0)
     vec4 final_col = mix(bg_col, col, col.a);
+    final_col *= vec4(ambientCol + skylight + light, 1.0);
 
     f_color = final_col;
     //f_color = vec4(vec3(occ), 1.0);
+    //f_color.rgb = mix(final_col.rgb, light.rgb, 1.0);
+    //f_color.a = 1.0;
     //f_color = light;
     //f_color = vec4(ambient, 1.0);
     //f_color = textureLod(tex, v_tex_coords, 2.0);

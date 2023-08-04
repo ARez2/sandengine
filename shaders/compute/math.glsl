@@ -146,14 +146,14 @@ ivec2[4] getOnlyDiagonalNeighbours(ivec2 pos) {
 
 ivec2[8] getDiagonalNeighbours(ivec2 pos) {
     ivec2 neighs[8] = {
-        pos + UP,
-        pos + UPLEFT,
-        pos + UPRIGHT,
-        pos + LEFT,
-        pos + RIGHT,
         pos + DOWN,
+        pos + UP,
         pos + DOWNLEFT,
+        pos + UPLEFT,
         pos + DOWNRIGHT,
+        pos + UPRIGHT,
+        pos + RIGHT,
+        pos + LEFT,
     };
     return neighs;
 }
