@@ -6,13 +6,14 @@ use parser::{parse_string, GLSLConvertible, ParsingResult};
 
 // TODO: Create a validator function (extra file) that checks every if/ do condition??
 
-
+/// Reads a file to a string and parses that string using the parser
 pub fn parse(filepath: PathBuf) -> anyhow::Result<ParsingResult> {
     let f = std::fs::read_to_string(filepath).unwrap();
     parse_string(f)
 }
 
 
+/// Creates the procedually generated GLSL files from the ParsingResult
 pub fn create_glsl_from_parser(result: &ParsingResult) {
     let cwd = std::env::current_dir().unwrap();
 
@@ -34,6 +35,7 @@ pub fn create_glsl_from_parser(result: &ParsingResult) {
         all_mats_list.push_str(format!("MAT_{},\n", m.name.clone()).as_str());
     };
 
+    // We need those functions on the GPU side for converting the uniform inputMaterialID into a material struct
     let helpers_functions = format!("
 Material[{}] materials() {{
     Material allMaterials[{}] = {{
@@ -70,8 +72,10 @@ Material getMaterialFromID(int id) {{
     let mut right_rules_call = String::new();
 
     result.rules.iter().for_each(|r| {
+        // only generate code for rules that have actually been used by types or materials
         if r.used {
             rule_functions.push_str(format!("{}\n\n", r.get_glsl_code()).as_str());
+            // Depending on the mirrored type of the rule, we call them with different cells
             match r.ruletype {
                 parser::SandRuleType::Mirrored => {
                     mirrored_rules_call.push_str(format!("rule_{}(self, right, down, downright, pos);\n", r.name).as_str());
@@ -90,7 +94,7 @@ Material getMaterialFromID(int id) {{
         .join("compute")
         .join("gen")
         .join("rules.glsl");
-    let mut rulefile_content = format!(
+    let rulefile_content = format!(
 "
 // =============== RULES ===============
 {}
