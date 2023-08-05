@@ -280,7 +280,7 @@ Responsible for:
 
 - Running the compute shader which simulates everything
 - Rendering the simulation
-- Rendering the UI
+- (CURRENTLY NOT WORKING) Rendering the UI
 
 ### `sandengine-lang`
 
