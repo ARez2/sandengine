@@ -3,18 +3,16 @@ extern crate glium;
 
 use std::time::Instant;
 
-use glium::glutin::dpi::{PhysicalPosition};
-use glium::glutin::event::{VirtualKeyCode};
-use glium::{
-    glutin::{self, event::WindowEvent, event::Event},
-};
 pub mod simulation;
 use sandengine_lang::parser::SandMaterial;
 use simulation::Simulation;
 pub mod renderer;
-use renderer::{Renderer, TextureDrawMode};
+use renderer::{Renderer};
+pub use renderer::RendererDisplay;
 pub mod physics;
 use physics::Physics;
+use winit::event::{WindowEvent, Event, MouseButton, ElementState, MouseScrollDelta, VirtualKeyCode};
+use winit::event_loop::ControlFlow;
 
 
 
@@ -40,7 +38,7 @@ pub fn run(parsing_result: sandengine_lang::parser::ParsingResult) {
 
     let size = (640, 480);
     //let size = (1920, 1080);
-    let event_loop = glium::glutin::event_loop::EventLoop::new();
+    let event_loop = winit::event_loop::EventLoopBuilder::new().build();
     let mut renderer = Renderer::new(size, &event_loop);
     let mut sim = Simulation::new(&renderer.display, size);
 
@@ -48,8 +46,8 @@ pub fn run(parsing_result: sandengine_lang::parser::ParsingResult) {
     event_loop.run(move |event, _, control_flow| {
         // nanos: 16_666_667
         let next_frame_time = std::time::Instant::now() + std::time::Duration::from_secs(1);
-        //*control_flow = glutin::event_loop::ControlFlow::WaitUntil(next_frame_time);
-        *control_flow = glutin::event_loop::ControlFlow::Poll;
+        //*control_flow = ControlFlow::WaitUntil(next_frame_time);
+        *control_flow = ControlFlow::Poll;
         let frame_delta = last_render.elapsed();
         last_render = Instant::now();
         let _fps = 1.0f64 / frame_delta.as_secs_f64();
@@ -59,6 +57,9 @@ pub fn run(parsing_result: sandengine_lang::parser::ParsingResult) {
         match event {
             Event::NewEvents(cause) => {
                 renderer.new_events(cause, frame_delta);
+            },
+            Event::RedrawEventsCleared => {
+                renderer.redraw();
             },
             Event::MainEventsCleared => {
                 renderer.prepare_frame();
@@ -74,7 +75,7 @@ pub fn run(parsing_result: sandengine_lang::parser::ParsingResult) {
                 renderer.finish_render();
             },
             Event::WindowEvent { event: WindowEvent::CloseRequested, .. } => {
-                *control_flow = glutin::event_loop::ControlFlow::Exit;
+                *control_flow = ControlFlow::Exit;
             },
             event => {
                 // if the UI etc. has already "consumed" those events, return
@@ -107,13 +108,13 @@ pub fn run(parsing_result: sandengine_lang::parser::ParsingResult) {
                     },
                     WindowEvent::MouseInput {state, button, ..} => {
                         match button {
-                            glutin::event::MouseButton::Left => {
-                                sim.params.mousePressed = state == glutin::event::ElementState::Pressed;
+                            MouseButton::Left => {
+                                sim.params.mousePressed = state == ElementState::Pressed;
                             },
                             _ => ()
                         }
                     },
-                    WindowEvent::MouseWheel {delta: glutin::event::MouseScrollDelta::LineDelta(_x, y), .. } => {
+                    WindowEvent::MouseWheel {delta: MouseScrollDelta::LineDelta(_x, y), .. } => {
                         let new = std::cmp::max(1, sim.params.brushSize as i32 + y.signum() as i32);
                         sim.params.brushSize = new as u32;
                         println!("Brush Size: {}", sim.params.brushSize);

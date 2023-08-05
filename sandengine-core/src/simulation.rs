@@ -2,7 +2,7 @@ use glium::{texture::{self, RawImage2d}, uniforms, Surface};
 use rand::Rng;
 use image::{io::Reader as ImageReader, GenericImageView};
 use sandengine_lang::parser::SandMaterial;
-
+use crate::RendererDisplay;
 
 const COMPUTE_SHADER_SRC: &'static str = include_str!("../../shaders/compute/gen/falling_sand.glsl");
 
@@ -64,7 +64,7 @@ pub struct Simulation {
     pub params: Params,
 }
 impl Simulation {
-    pub fn new(display: &glium::Display, size: (u32, u32)) -> Self {
+    pub fn new(display: &RendererDisplay, size: (u32, u32)) -> Self {
         let current_dir = std::env::current_dir().unwrap();
 
         // Creates the shader program

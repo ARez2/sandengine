@@ -1,12 +1,14 @@
 use glium::{
-    glutin::{self, dpi::PhysicalSize, event::Event, event_loop::EventLoop, window::Icon},
-    uniforms::{self, Sampler}, BlitTarget, Frame, Program, Rect, Surface, BackfaceCullingMode, DrawParameters, program::ProgramChooserCreationError,
+    uniforms::{self, Sampler}, Frame, Program, Surface, DrawParameters, program::ProgramChooserCreationError, glutin::surface::WindowSurface,
 };
-use imgui_winit_support::WinitPlatform;
+//use imgui_winit_support::WinitPlatform;
 use nphysics2d::nalgebra::Point2;
 use rayon::prelude::*;
+use winit::{event_loop::EventLoop, dpi::PhysicalSize, window::{Icon, Window}, event::{Event, self}};
 
 const APPLICATION_ICON: &'static [u8] = include_bytes!("../../icon.png");
+
+pub type RendererDisplay = glium::Display<WindowSurface>;
 
 #[derive(Copy, Clone)]
 struct Vertex {
@@ -43,7 +45,7 @@ pub enum TextureDrawMode {
     /// Keeps the original size
     KeepScale,
     /// Scales the texture to the given Size
-    Scale(glium::glutin::dpi::PhysicalSize<u32>),
+    Scale(PhysicalSize<u32>),
 }
 
 
@@ -52,13 +54,15 @@ pub struct Renderer {
     /// Program that includes the fragment/ vertex shader
     draw_program: Program,
     /// The display, used for drawing
-    pub display: glium::Display,
+    pub display: RendererDisplay,
+    /// The winit window handle
+    pub window: Window,
     /// The window handle
-    winit_platform: WinitPlatform,
+    //winit_platform: WinitPlatform,
     /// imgui (UI) context
-    imgui_context: imgui::Context,
+    //imgui_context: imgui::Context,
     /// Imgui renderer
-    ui_renderer: imgui_glium_renderer::Renderer,
+    //ui_renderer: imgui_glium_renderer::Renderer,
 
     /// Holds the frame, once the start_render function is called
     current_frame: Option<Frame>,
@@ -67,12 +71,11 @@ pub struct Renderer {
 impl Renderer {
     /// Creates a new renderer
     pub fn new(size: (u32, u32), event_loop: &EventLoop<()>) -> Self {
-        let wb = glutin::window::WindowBuilder::new()
-            .with_inner_size(PhysicalSize::<u32>::from(size))
-            //.with_fullscreen(Some(glutin::window::Fullscreen::Borderless(None)))
-            .with_title("SandEngine");
-        let cb = glutin::ContextBuilder::new().with_gl(glutin::GlRequest::Latest); //.with_vsync(true)
-        let display = glium::Display::new(wb, cb, event_loop).unwrap();
+        let window_size = PhysicalSize::<u32>::new(size.0, size.1);
+        let (window, display) = glium::backend::glutin::SimpleWindowBuilder::new()
+            .with_title("SandEngine")
+            .with_inner_size(window_size.width, window_size.height)
+            .build(event_loop);
 
         // Loads the application (window) icon
         let (icon_rgba, icon_width, icon_height) = {
@@ -84,11 +87,11 @@ impl Renderer {
             (rgba, width, height)
         };
         let icon = Icon::from_rgba(icon_rgba, icon_width, icon_height).unwrap();
-        display.gl_window().window().set_window_icon(Some(icon));
+        window.set_window_icon(Some(icon));
 
-        let (winit_platform, mut imgui_context) = Renderer::imgui_init(&display);
-        let ui_renderer = imgui_glium_renderer::Renderer::init(&mut imgui_context, &display)
-            .expect("Failed to initialize UI renderer");
+        // let (winit_platform, mut imgui_context) = Renderer::imgui_init(&display);
+        // let ui_renderer = imgui_glium_renderer::Renderer::init(&mut imgui_context, &display)
+        //     .expect("Failed to initialize UI renderer");
 
         // Builds the program, that draws everything
         let vertex140_shader_src = include_str!("../../shaders/vertex140.glsl");
@@ -112,65 +115,71 @@ impl Renderer {
         Renderer {
             draw_program,
             display,
-            winit_platform,
-            imgui_context,
-            ui_renderer,
+            window,
+            //winit_platform,
+            //imgui_context,
+            //ui_renderer,
 
             current_frame: None,
         }
     }
 
-    /// Helper function to set up ImGui
-    fn imgui_init(
-        display: &glium::Display,
-    ) -> (imgui_winit_support::WinitPlatform, imgui::Context) {
-        let mut imgui_context = imgui::Context::create();
-        imgui_context.set_ini_filename(None);
+    // /// Helper function to set up ImGui
+    // fn imgui_init(
+    //     display: &RendererDisplay,
+    // ) -> (imgui_winit_support::WinitPlatform, imgui::Context) {
+    //     let mut imgui_context = imgui::Context::create();
+    //     imgui_context.set_ini_filename(None);
 
-        let mut winit_platform = imgui_winit_support::WinitPlatform::init(&mut imgui_context);
+    //     let mut winit_platform = imgui_winit_support::WinitPlatform::init(&mut imgui_context);
 
-        let gl_window = display.gl_window();
-        let window = gl_window.window();
+    //     let gl_window = display.gl_window();
+    //     let window = gl_window.window();
 
-        let dpi_mode = imgui_winit_support::HiDpiMode::Default;
+    //     let dpi_mode = imgui_winit_support::HiDpiMode::Default;
 
-        winit_platform.attach_window(imgui_context.io_mut(), window, dpi_mode);
+    //     winit_platform.attach_window(imgui_context.io_mut(), window, dpi_mode);
 
-        imgui_context
-            .fonts()
-            .add_font(&[imgui::FontSource::TtfData {
-                data: include_bytes!("../../fonts/Fragment_Mono/FragmentMono-Regular.ttf"),
-                size_pixels: 15.0,
-                config: None,
-            }]);
+    //     imgui_context
+    //         .fonts()
+    //         .add_font(&[imgui::FontSource::TtfData {
+    //             data: include_bytes!("../../fonts/Fragment_Mono/FragmentMono-Regular.ttf"),
+    //             size_pixels: 15.0,
+    //             config: None,
+    //         }]);
 
-        (winit_platform, imgui_context)
+    //     (winit_platform, imgui_context)
+    // }
+
+    pub fn redraw(&self) {
+        self.window.request_redraw();
     }
 
     /// Prepares the renderer to start drawing
     pub fn prepare_frame(&mut self) {
-        let gl_window = self.display.gl_window();
-        self.winit_platform
-            .prepare_frame(self.imgui_context.io_mut(), gl_window.window())
-            .expect("Failed to prepare frame");
-        gl_window.window().request_redraw();
+        // let gl_window = self.display.gl_window();
+        // self.winit_platform
+        //     .prepare_frame(self.imgui_context.io_mut(), gl_window.window())
+        //     .expect("Failed to prepare frame");
+        
     }
 
     pub fn new_events(
         &mut self,
-        _event: glium::glutin::event::StartCause,
+        _event: event::StartCause,
         delta: std::time::Duration,
     ) {
-        self.imgui_context.io_mut().update_delta_time(delta);
+        //self.imgui_context.io_mut().update_delta_time(delta);
     }
 
     /// Let the UI handle the (input) event and return whether it has been consumed
     pub fn process_events(&mut self, event: &Event<()>) -> bool {
-        let gl_window = self.display.gl_window();
-        self.winit_platform
-            .handle_event(self.imgui_context.io_mut(), gl_window.window(), event);
+        // let gl_window = self.display.gl_window();
+        // self.winit_platform
+        //     .handle_event(self.imgui_context.io_mut(), gl_window.window(), event);
 
-        self.imgui_context.io().want_capture_mouse || self.imgui_context.io().want_capture_keyboard
+        // self.imgui_context.io().want_capture_mouse || self.imgui_context.io().want_capture_keyboard
+        false
     }
 
     /// Starts drawing, clearing the screen before
@@ -183,20 +192,20 @@ impl Renderer {
 
     /// Calls the imgui (UI) renderer
     pub fn render_ui(&mut self) {
-        // Create frame for the all important `&imgui::Ui`
-        let ui = self.imgui_context.frame();
+        // // Create frame for the all important `&imgui::Ui`
+        // let ui = self.imgui_context.frame();
 
-        ui.show_demo_window(&mut true);
-        let gl_window = self.display.gl_window();
+        // ui.show_demo_window(&mut true);
+        // let gl_window = self.display.gl_window();
 
-        // Render UI
-        self.winit_platform.prepare_render(ui, gl_window.window());
-        let ui_draw_data = self.imgui_context.render();
-        if let Some(target) = &mut self.current_frame {
-            self.ui_renderer
-                .render(target, ui_draw_data)
-                .expect("Could not render UI.");
-        }
+        // // Render UI
+        // self.winit_platform.prepare_render(ui, gl_window.window());
+        // let ui_draw_data = self.imgui_context.render();
+        // if let Some(target) = &mut self.current_frame {
+        //     self.ui_renderer
+        //         .render(target, ui_draw_data)
+        //         .expect("Could not render UI.");
+        // }
     }
 
     /// Renders the simulation, including providing uniforms for the fragment and vertex shaders
