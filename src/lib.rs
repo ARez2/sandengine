@@ -67,7 +67,15 @@ fn build_compute_shaders() {
         }
 
         if had_includes {
-            std::fs::write(shaderpath.join("gen").join(path.file_name().unwrap().to_str().unwrap()), contents).unwrap();
+            let path = shaderpath.join("gen").join(path.file_name().unwrap().to_str().unwrap());
+            let old_content = std::fs::read_to_string(path.clone());
+            if let Ok(old) = old_content {
+                if old != contents {
+                    std::fs::write(path, contents).unwrap();
+                }
+            } else {
+                std::fs::write(path, contents).unwrap();
+            }
         }
     });
 }
