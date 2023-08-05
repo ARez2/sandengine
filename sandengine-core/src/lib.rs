@@ -9,8 +9,6 @@ use simulation::Simulation;
 pub mod renderer;
 use renderer::{Renderer};
 pub use renderer::RendererDisplay;
-pub mod physics;
-use physics::Physics;
 use winit::event::{WindowEvent, Event, MouseButton, ElementState, MouseScrollDelta, VirtualKeyCode};
 use winit::event_loop::ControlFlow;
 
