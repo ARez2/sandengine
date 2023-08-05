@@ -17,8 +17,36 @@ shaders were introduced).
 
 ### Add physics
 
-- Simple Ray intersections GPU Side?
-- Or rapier/ nphysics2D on the CPU?
+- wrapped2D (Box2D) on the CPU simulates bodies
+- each Cell stores its position relative one body
+- **only static, non moving materials can be part of a rigidbody**
+- after the CPU physics step, the transforms of all rigidbodies are transferred
+to the GPU using a uniform array
+
+- have 2 more uniform arrays for "new" and "queued for deletion" bodies
+
+- the cell checks if its part of a body that is queued for deletion and if so,
+sets itself to empty
+- all other cells check the "queued for deletion" list to see if a body is being
+deleted, that has a lower idx in the list of bodies and depending on how many
+bodies that affects, subtract its own body index (*"2 bodies before my body are*
+*getting deleted? `my_body_idx -= 2`*)
+
+- maybe have a struct `RBContructor` to describe the texture (so that a cell can
+set itself to the material on the texture if it is inside that rbs texture), pos,
+rot of the new rb
+
+```glsl
+vec2 rotatePoint(vec2 pt, float rot) {
+  return mat4(cos(rot), sin(rot), -sin(rot), cos(rot)) * pt;
+}
+
+vec2 rotatePoint(vec2 pt, float rot, vec2 origin) {
+  return rotatePoint(pt - origin, rot) + origin;
+}
+
+vec2 new_pos = rotatePoint(self.pos, bodies[my_body_idx].rotation, bodies[my_body_idx].position);
+```
 
 ### Add sounds
 
