@@ -1,8 +1,7 @@
 rules:
   fall_slide:
     if: DOWN.mat.density < SELF.mat.density
-    do:
-      - SWAP SELF DOWN
+    do: SWAP SELF DOWN
     else:
       if: RIGHT.mat.density < SELF.mat.density and DOWNRIGHT.mat.density < SELF.mat.density
       do: SWAP SELF DOWNRIGHT
@@ -21,6 +20,16 @@ rules:
       if: isType_gas(DOWN) and not isType_solid(RIGHT) and DOWN.mat.density < RIGHT.mat.density
       do: SWAP DOWN RIGHT
     precondition: false
+  grow:
+    if: isType_EMPTY(SELF) and DOWN.mat == sand and DOWNRIGHT.mat == water
+    do: SET SELF vine
+    precondition: false
+    mirrored: true
+  grow_up:
+    if: isType_EMPTY(SELF) and DOWN.mat == vine
+    do: SET SELF vine
+    precondition: false
+    mirrored: true
 
 
 types:
@@ -40,6 +49,9 @@ types:
       rise_up
     ]
   plant:
+    base_rules: [
+      grow
+    ]
 
 
 materials:
@@ -71,14 +83,14 @@ materials:
   
   toxic_sludge:
     type: liquid
-    color: [0.0, 0.7, 0.2, 0.5]
-    emission: [0.0, 0.5, 0.0, 0.99999]
-    density: 1.8
+    color: [0.0, 0.7, 0.0, 0.5]
+    emission: [0.7, 0.0, 0.0, 0.99999]
+    density: 1.49
   
-  # vine:
-  #   type: plant
-  #   color: [0.14, 0.5, 0.19]
-  #   density: 2.5
-  #   extra_rules: [
-  #     vine_rule
-  #   ]
+  vine:
+    type: plant
+    color: [87, 127, 62]
+    density: 2.5
+    extra_rules: [
+      grow_up
+    ]
