@@ -466,6 +466,7 @@ fn parse_global_scope(parse_str: &mut String) {
     *parse_str = parse_str.replace(" and ", " && ");
     *parse_str = parse_str.replace("not ", " !");
     
+    // IDEA: Use EMPTY in YAML Syntax
     *parse_str = parse_str.replace("empty", "MAT_EMPTY");
 
     *parse_str = parse_str.replace("SELF", "self");
@@ -942,7 +943,8 @@ fn extract_vec4(yaml_data: &Value, parent_name: String, field_name: &'static str
                 if comp > 1.0 && comp <= 255.0 {
                     vec4[idx] = comp as f32 / 255.0;
                     continue;
-                } else if comp >= 0.0 && comp <= 1.0 {
+                }
+                if comp >= 0.0 && comp <= 1.0 {
                     vec4[idx] = comp as f32;
                     continue;
                 }
