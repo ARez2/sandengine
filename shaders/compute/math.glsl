@@ -111,6 +111,13 @@ float noise(vec2 p) {
 }
 
 
+vec2 rotatePoint(vec2 pt, float rot) {
+  return mat2(cos(rot), sin(rot), -sin(rot), cos(rot)) * pt;
+}
+
+vec2 rotatePoint(vec2 pt, float rot, vec2 origin) {
+  return rotatePoint(pt - origin, rot) + origin;
+}
 
 
 

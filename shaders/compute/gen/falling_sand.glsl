@@ -153,6 +153,13 @@ float noise(vec2 p) {
 }
 
 
+vec2 rotatePoint(vec2 pt, float rot) {
+  return mat2(cos(rot), sin(rot), -sin(rot), cos(rot)) * pt;
+}
+
+vec2 rotatePoint(vec2 pt, float rot, vec2 origin) {
+  return rotatePoint(pt - origin, rot) + origin;
+}
 
 
 
@@ -215,10 +222,16 @@ struct Material {
 struct Cell {
     Material mat;
     ivec2 pos;
+    int rb_idx;
+    ivec2 prev_pos;
 };
 
 Cell newCell(Material mat, ivec2 pos) {
-    return Cell(mat, pos);
+    return Cell(mat, pos, -1, pos);
+}
+
+Cell newCell(Material mat, ivec2 pos, ivec2 prev_pos) {
+    return Cell(mat, pos, -1, prev_pos);
 }
 
 
@@ -280,10 +293,11 @@ bool isType_plant(Cell cell) {
 #define MAT_water Material(5, vec4(0, 0, 1, 0.5), 1.3, vec4(0, 0, 0, 0), TYPE_liquid)
 #define MAT_radioactive Material(6, vec4(0.196, 0.55, 0.184, 1), 5, vec4(0.05, 0.7, 0.05, 0.9), TYPE_solid)
 #define MAT_smoke Material(7, vec4(0.3, 0.3, 0.3, 0.3), 0.1, vec4(0, 0, 0, 0), TYPE_gas)
-#define MAT_toxic_sludge Material(8, vec4(0, 0.7, 0.2, 0.5), 1.8, vec4(0, 0.5, 0, 0.99999), TYPE_liquid)
+#define MAT_toxic_sludge Material(8, vec4(0, 0.7, 0, 0.5), 1.49, vec4(0.7, 0, 0, 0.99999), TYPE_liquid)
+#define MAT_vine Material(9, vec4(0.34117648, 0.49803922, 0.24313726, 1), 2.5, vec4(0, 0, 0, 0), TYPE_plant)
 
-Material[9] materials() {
-    Material allMaterials[9] = {
+Material[10] materials() {
+    Material allMaterials[10] = {
         MAT_EMPTY,
 MAT_NULL,
 MAT_WALL,
@@ -293,6 +307,7 @@ MAT_water,
 MAT_radioactive,
 MAT_smoke,
 MAT_toxic_sludge,
+MAT_vine,
 
     };
     return allMaterials;
@@ -332,6 +347,16 @@ layout(binding = 4) uniform sampler2D input_light;
 layout(rgba32f, binding = 5) uniform writeonly image2D output_light;
 layout(rgba32f, binding = 6) uniform writeonly image2D output_effects;
 layout(r32ui, binding = 7) uniform volatile coherent uimage2D image_lock;
+
+struct RigidBody {
+    int id;
+    vec2 pos;
+    float rot;
+};
+
+uniform RigidBodies {
+    RigidBody bodies[16];
+};
 
 Cell[8] neighbours;
 
@@ -388,8 +413,10 @@ Cell getCell(ivec2 pos) {
     ivec4 data = ivec4(texelFetch(input_data, pos, 0));
     // data: ___id___  00000000  00000000  00000000
     int matID = int(data.r);
+    int rb_idx = int(data.g);
+    ivec2 prev_pos = ivec2(data.b, data.a);
 
-    return newCell(getMaterialFromID(matID), pos);
+    return Cell(getMaterialFromID(matID), pos, rb_idx, prev_pos);
 }
 
 Cell getCell(ivec2 pos, ivec2 offset) {
@@ -432,7 +459,7 @@ bool gt(vec3 a, vec3 b) {
     return a.x > b.x && a.y > b.y && a.z > b.z;
 }
 
-void setCell(ivec2 pos, Cell cell, bool setCollision) {
+void setCell(ivec2 pos, Cell cell) {
     vec4 color = cell.mat.color;
     
     // TODO: Modify noise based on material
@@ -444,7 +471,7 @@ void setCell(ivec2 pos, Cell cell, bool setCollision) {
     };
     
     //imageStore(output_effects, pos, vec4(cell.mat.emission, 1.0));
-    ivec4 data = ivec4(cell.mat.id, 0, 0, 0);
+    ivec4 data = ivec4(cell.mat.id, cell.rb_idx, cell.prev_pos.x, cell.prev_pos.y);
     imageStore(output_data, pos, data);
 
     ivec2[8] neighs = getDiagonalNeighbours(pos);
@@ -453,10 +480,10 @@ void setCell(ivec2 pos, Cell cell, bool setCollision) {
         neighCells[n] = getCell(neighs[n]);
     }
 
-    int numColliders = int(isCollider(neighCells[3])) + int(isCollider(neighCells[4])) + int(isCollider(neighCells[0])) + int(isCollider(neighCells[5]));
-    if (setCollision && isCollider(cell) && numColliders < 4) {
-        imageStore(collision_data, pos / 8, max(imageLoad(collision_data, pos / 8), vec4(vec3(1.0), 0.1)));
-    }
+    // int numColliders = int(isCollider(neighCells[3])) + int(isCollider(neighCells[4])) + int(isCollider(neighCells[0])) + int(isCollider(neighCells[5]));
+    // if (setCollision && isCollider(cell) && numColliders < 4) {
+    //     imageStore(collision_data, pos / 8, max(imageLoad(collision_data, pos / 8), vec4(vec3(1.0), 0.1)));
+    // }
     
     vec4 light;
     if (cell.mat.emission.rgb != vec3(0.0)) {
@@ -505,8 +532,8 @@ void setCell(ivec2 pos, Cell cell, bool setCollision) {
     imageStore(output_light, pos, light);
     imageStore(output_color, pos, color);
 }
-void setCell(ivec2 pos, Material mat, bool setCollision) {
-    setCell(pos, newCell(mat, pos), setCollision);
+void setCell(ivec2 pos, Material mat) {
+    setCell(pos, newCell(mat, pos));
 }
 
 
@@ -559,6 +586,26 @@ void rule_rise_up (inout Cell self, inout Cell right, inout Cell down, inout Cel
 }
 }
 
+void rule_grow (inout Cell self, inout Cell right, inout Cell down, inout Cell downright, ivec2 pos) {
+    
+
+    if (isType_EMPTY(self) && down.mat == MAT_sand && downright.mat == MAT_water) {
+    self = newCell(MAT_vine, pos);
+} else {
+    
+}
+}
+
+void rule_grow_up (inout Cell self, inout Cell right, inout Cell down, inout Cell downright, ivec2 pos) {
+    
+
+    if (isType_EMPTY(self) && down.mat == MAT_vine) {
+    self = newCell(MAT_vine, pos);
+} else {
+    
+}
+}
+
 
 
 
@@ -571,6 +618,8 @@ void applyMirroredRules(
     ivec2 pos) {
     rule_fall_slide(self, right, down, downright, pos);
 rule_horizontal_slide(self, right, down, downright, pos);
+rule_grow(self, right, down, downright, pos);
+rule_grow_up(self, right, down, downright, pos);
 }
 
 
@@ -716,8 +765,40 @@ void main() {
     };
 
     if (time < 0.1) {
-        setCell(pos, MAT_EMPTY, false);
+        setCell(pos, MAT_EMPTY);
     }
+
+    return;
+
+    vec2 body_pos = bodies[0].pos;
+    float size = 20;
+    vec2 p = vec2(pos);
+    float rot = bodies[0].rot;
+    // Position in body-local coordinates
+    vec2 p_local = p - body_pos;
+    // Rotated position in body-local coords
+    vec2 p_rot = rotatePoint(p_local, rot);
+    // previous frame position in body-local coords
+    vec2 old_rot = rotatePoint(p_local, rot - 0.001);
+
+    float half_size = size / 2;
+    // if the current position is inside the body
+    if (p_rot.x > -half_size && p_rot.x < half_size && p_rot.y > -half_size && p_rot.y < half_size) {
+        Cell self = getCell(pos);
+        Cell old_cell = getCell(self.prev_pos);
+        if (frame > 1 && old_cell.prev_pos != old_cell.pos) {
+            old_cell.prev_pos = pos;
+            setCell(pos, old_cell);
+        } else {
+            Cell self = Cell(MAT_rock, pos, 0, pos);
+            setCell(pos, self);
+        };
+        return;
+    // if the current position was inside the body last frame, clear it
+    } else if (old_rot.x > -half_size && old_rot.x < half_size && old_rot.y > -half_size && old_rot.y < half_size) {
+        setCell(pos, newCell(MAT_EMPTY, pos, ivec2(old_rot + body_pos)));
+        return;
+    };
 
 
     // Process input
@@ -732,13 +813,13 @@ void main() {
     #endif // USE_CIRCLE_BRUSH
     
     if (applyBrush) {
-        setCell(pos, getMaterialFromID(brushMaterial), false);
+        setCell(pos, getMaterialFromID(brushMaterial));
         return;
     };
 
 
     Cell result = simulate();
-    setCell(pos, result, false);
+    setCell(pos, result);
 
 
     // ivec2[8] neighPositions = getDiagonalNeighbours(pos);

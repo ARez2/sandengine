@@ -13,3 +13,4 @@ image = "0.24.6"
 nphysics2d = "0.24.0"
 rayon = "1.7.0"
 sandengine-lang = {path = "../sandengine-lang"}
+wrapped2d = "0.4.1"

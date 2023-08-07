@@ -213,6 +213,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "cmake"
+version = "0.1.50"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a31c789563b815f77f4250caee12365734369f942439b7defd71e18a48197130"
+dependencies = [
+ "cc",
+]
+
+[[package]]
 name = "color_quant"
 version = "1.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1480,6 +1489,7 @@ dependencies = [
  "rayon",
  "sandengine-lang",
  "winit",
+ "wrapped2d",
 ]
 
 [[package]]
@@ -2228,6 +2238,19 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "61de7bac303dc551fe038e2b3cef0f571087a47571ea6e79a87692ac99b99699"
 dependencies = [
  "memchr",
+]
+
+[[package]]
+name = "wrapped2d"
+version = "0.4.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "788cab1d895e49bbd7c034209005525a901402a52acc6fcc422cab895469858a"
+dependencies = [
+ "bitflags",
+ "cc",
+ "cmake",
+ "libc",
+ "vec_map",
 ]
 
 [[package]]

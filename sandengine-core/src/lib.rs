@@ -6,9 +6,13 @@ use std::time::Instant;
 pub mod simulation;
 use sandengine_lang::parser::SandMaterial;
 use simulation::Simulation;
+
+pub mod physics;
+
 pub mod renderer;
 use renderer::{Renderer};
 pub use renderer::RendererDisplay;
+
 use winit::event::{WindowEvent, Event, MouseButton, ElementState, MouseScrollDelta, VirtualKeyCode};
 use winit::event_loop::ControlFlow;
 
@@ -61,9 +65,6 @@ pub fn run(parsing_result: sandengine_lang::parser::ParsingResult) {
             },
             Event::MainEventsCleared => {
                 renderer.prepare_frame();
-                sim.run();
-                sim.run();
-                sim.run();
                 sim.run();
             },
             Event::RedrawRequested(_) => {

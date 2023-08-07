@@ -46,6 +46,26 @@ void rule_rise_up (inout Cell self, inout Cell right, inout Cell down, inout Cel
 }
 }
 
+void rule_grow (inout Cell self, inout Cell right, inout Cell down, inout Cell downright, ivec2 pos) {
+    
+
+    if (isType_EMPTY(self) && down.mat == MAT_sand && downright.mat == MAT_water) {
+    self = newCell(MAT_vine, pos);
+} else {
+    
+}
+}
+
+void rule_grow_up (inout Cell self, inout Cell right, inout Cell down, inout Cell downright, ivec2 pos) {
+    
+
+    if (isType_EMPTY(self) && down.mat == MAT_vine) {
+    self = newCell(MAT_vine, pos);
+} else {
+    
+}
+}
+
 
 
 
@@ -58,6 +78,8 @@ void applyMirroredRules(
     ivec2 pos) {
     rule_fall_slide(self, right, down, downright, pos);
 rule_horizontal_slide(self, right, down, downright, pos);
+rule_grow(self, right, down, downright, pos);
+rule_grow_up(self, right, down, downright, pos);
 }
 
 

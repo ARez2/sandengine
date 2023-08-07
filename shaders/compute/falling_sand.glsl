@@ -43,6 +43,16 @@ layout(rgba32f, binding = 5) uniform writeonly image2D output_light;
 layout(rgba32f, binding = 6) uniform writeonly image2D output_effects;
 layout(r32ui, binding = 7) uniform volatile coherent uimage2D image_lock;
 
+struct RigidBody {
+    int id;
+    vec2 pos;
+    float rot;
+};
+
+uniform RigidBodies {
+    RigidBody bodies[16];
+};
+
 Cell[8] neighbours;
 
 #include "operations.glsl"
@@ -169,8 +179,38 @@ void main() {
     };
 
     if (time < 0.1) {
-        setCell(pos, MAT_EMPTY, false);
+        setCell(pos, MAT_EMPTY);
     }
+
+    vec2 body_pos = bodies[0].pos;
+    float size = 20;
+    vec2 p = vec2(pos);
+    float rot = bodies[0].rot;
+    // Position in body-local coordinates
+    vec2 p_local = p - body_pos;
+    // Rotated position in body-local coords
+    vec2 p_rot = rotatePoint(p_local, rot);
+    // previous frame position in body-local coords
+    vec2 old_rot = rotatePoint(p_local, rot - 0.001);
+
+    float half_size = size / 2;
+    // if the current position is inside the body
+    if (p_rot.x > -half_size && p_rot.x < half_size && p_rot.y > -half_size && p_rot.y < half_size) {
+        Cell self = getCell(pos);
+        Cell old_cell = getCell(self.prev_pos);
+        if (frame > 1 && old_cell.prev_pos != old_cell.pos) {
+            old_cell.prev_pos = pos;
+            setCell(pos, old_cell);
+        } else {
+            Cell self = Cell(MAT_rock, pos, 0, pos);
+            setCell(pos, self);
+        };
+        return;
+    // if the current position was inside the body last frame, clear it
+    } else if (old_rot.x > -half_size && old_rot.x < half_size && old_rot.y > -half_size && old_rot.y < half_size) {
+        setCell(pos, newCell(MAT_EMPTY, pos, ivec2(old_rot + body_pos)));
+        return;
+    };
 
 
     // Process input
@@ -185,13 +225,13 @@ void main() {
     #endif // USE_CIRCLE_BRUSH
     
     if (applyBrush) {
-        setCell(pos, getMaterialFromID(brushMaterial), false);
+        setCell(pos, getMaterialFromID(brushMaterial));
         return;
     };
 
 
     Cell result = simulate();
-    setCell(pos, result, false);
+    setCell(pos, result);
 
 
     // ivec2[8] neighPositions = getDiagonalNeighbours(pos);

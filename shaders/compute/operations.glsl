@@ -52,8 +52,10 @@ Cell getCell(ivec2 pos) {
     ivec4 data = ivec4(texelFetch(input_data, pos, 0));
     // data: ___id___  00000000  00000000  00000000
     int matID = int(data.r);
+    int rb_idx = int(data.g);
+    ivec2 prev_pos = ivec2(data.b, data.a);
 
-    return newCell(getMaterialFromID(matID), pos);
+    return Cell(getMaterialFromID(matID), pos, rb_idx, prev_pos);
 }
 
 Cell getCell(ivec2 pos, ivec2 offset) {
@@ -96,7 +98,7 @@ bool gt(vec3 a, vec3 b) {
     return a.x > b.x && a.y > b.y && a.z > b.z;
 }
 
-void setCell(ivec2 pos, Cell cell, bool setCollision) {
+void setCell(ivec2 pos, Cell cell) {
     vec4 color = cell.mat.color;
     
     // TODO: Modify noise based on material
@@ -108,7 +110,7 @@ void setCell(ivec2 pos, Cell cell, bool setCollision) {
     };
     
     //imageStore(output_effects, pos, vec4(cell.mat.emission, 1.0));
-    ivec4 data = ivec4(cell.mat.id, 0, 0, 0);
+    ivec4 data = ivec4(cell.mat.id, cell.rb_idx, cell.prev_pos.x, cell.prev_pos.y);
     imageStore(output_data, pos, data);
 
     ivec2[8] neighs = getDiagonalNeighbours(pos);
@@ -117,10 +119,10 @@ void setCell(ivec2 pos, Cell cell, bool setCollision) {
         neighCells[n] = getCell(neighs[n]);
     }
 
-    int numColliders = int(isCollider(neighCells[3])) + int(isCollider(neighCells[4])) + int(isCollider(neighCells[0])) + int(isCollider(neighCells[5]));
-    if (setCollision && isCollider(cell) && numColliders < 4) {
-        imageStore(collision_data, pos / 8, max(imageLoad(collision_data, pos / 8), vec4(vec3(1.0), 0.1)));
-    }
+    // int numColliders = int(isCollider(neighCells[3])) + int(isCollider(neighCells[4])) + int(isCollider(neighCells[0])) + int(isCollider(neighCells[5]));
+    // if (setCollision && isCollider(cell) && numColliders < 4) {
+    //     imageStore(collision_data, pos / 8, max(imageLoad(collision_data, pos / 8), vec4(vec3(1.0), 0.1)));
+    // }
     
     vec4 light;
     if (cell.mat.emission.rgb != vec3(0.0)) {
@@ -169,6 +171,6 @@ void setCell(ivec2 pos, Cell cell, bool setCollision) {
     imageStore(output_light, pos, light);
     imageStore(output_color, pos, color);
 }
-void setCell(ivec2 pos, Material mat, bool setCollision) {
-    setCell(pos, newCell(mat, pos), setCollision);
+void setCell(ivec2 pos, Material mat) {
+    setCell(pos, newCell(mat, pos));
 }
