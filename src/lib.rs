@@ -3,11 +3,12 @@ use colored::Colorize;
 
 pub extern crate sandengine_lang;
 
-const YAML_DATA: &'static str = include_str!("../data/materials.yaml");
+//const YAML_DATA: &'static str = include_str!("../data/materials.yaml");
 
 /// Parses the YAML data file(s), builds the compute shader and finally runs the engine
 pub fn run() {
-    let parse_res = sandengine_lang::parse_string(YAML_DATA);
+    let yaml_data = std::fs::read_to_string("./data/materials.yaml").unwrap();
+    let parse_res = sandengine_lang::parse_string(&yaml_data);
     match parse_res {
         Ok(result) => {
             // println!("{}{:#?}", "Rules: ".bold(), result.rules);
@@ -40,6 +41,7 @@ fn build_compute_shaders() {
 
         let path = file.unwrap().path();
         let mut contents = std::fs::read_to_string(path.clone()).unwrap();
+        let old_contents = contents.clone();
         let searchstr = "\n#include \"";
         let mut start_idx = contents.find(searchstr).unwrap_or(0);
         while start_idx != 0 {
@@ -66,16 +68,9 @@ fn build_compute_shaders() {
             start_idx = contents.find(searchstr).unwrap_or(0);
         }
 
-        if had_includes {
+        if had_includes && old_contents != contents {
             let path = shaderpath.join("gen").join(path.file_name().unwrap().to_str().unwrap());
-            let old_content = std::fs::read_to_string(path.clone());
-            if let Ok(old) = old_content {
-                if old != contents {
-                    std::fs::write(path, contents).unwrap();
-                }
-            } else {
-                std::fs::write(path, contents).unwrap();
-            }
+            std::fs::write(path, contents).unwrap();
         }
     });
 }
