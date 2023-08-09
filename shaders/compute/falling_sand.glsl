@@ -43,6 +43,10 @@ layout(rgba32f, binding = 5) uniform writeonly image2D output_light;
 layout(rgba32f, binding = 6) uniform writeonly image2D output_effects;
 layout(r32ui, binding = 7) uniform volatile coherent uimage2D image_lock;
 
+layout(std430, binding = 8) buffer RBCells {
+    RBCell rb_cells[];
+};
+
 struct RigidBody {
     int id;
     vec2 pos;
@@ -182,35 +186,47 @@ void main() {
         setCell(pos, MAT_EMPTY);
     }
 
-    vec2 body_pos = bodies[0].pos;
-    float size = 20;
-    vec2 p = vec2(pos);
-    float rot = bodies[0].rot;
-    // Position in body-local coordinates
-    vec2 p_local = p - body_pos;
-    // Rotated position in body-local coords
-    vec2 p_rot = rotatePoint(p_local, rot);
-    // previous frame position in body-local coords
-    vec2 old_rot = rotatePoint(p_local, rot - 0.001);
+    barrier();
+    int num_rb_cells = rb_cells.length();
 
-    float half_size = size / 2;
-    // if the current position is inside the body
-    if (p_rot.x > -half_size && p_rot.x < half_size && p_rot.y > -half_size && p_rot.y < half_size) {
-        Cell self = getCell(pos);
-        Cell old_cell = getCell(self.prev_pos);
-        if (frame > 1 && old_cell.prev_pos != old_cell.pos) {
-            old_cell.prev_pos = pos;
-            setCell(pos, old_cell);
-        } else {
-            Cell self = Cell(MAT_rock, pos, 0, pos);
-            setCell(pos, self);
-        };
-        return;
-    // if the current position was inside the body last frame, clear it
-    } else if (old_rot.x > -half_size && old_rot.x < half_size && old_rot.y > -half_size && old_rot.y < half_size) {
-        setCell(pos, newCell(MAT_EMPTY, pos, ivec2(old_rot + body_pos)));
-        return;
+    for (int i = 0; i < num_rb_cells; i++) {
+        if (distance(rb_cells[i].pos, pos) < 5.0) {
+            setCell(pos, MAT_EMPTY);
+            return;
+        }
+    }
+
+    //barrier();
+
+    uint rb_cell_idx = gl_GlobalInvocationID.x;
+    if (rb_cell_idx >= 0 && rb_cell_idx < num_rb_cells) {
+        RBCell cell = rb_cells[rb_cell_idx];
+        setCell(cell.pos, MAT_EMPTY);
+        if (cell.rb_idx >= 0 && cell.rb_idx < bodies.length()) {
+            RigidBody rb = bodies[cell.rb_idx];
+            float rot = rb.rot;
+            vec2 body_pos = rb.pos;
+            vec2 p = vec2(cell.orig_pos);
+            // Position in body-local coordinates
+            vec2 p_local = p - body_pos;
+            // Rotated position in body-local coords
+            vec2 p_rot = rotatePoint(p_local, rot);
+            // New position in global coords
+            vec2 new_p = p_rot + body_pos;
+            cell.pos = ivec2(new_p);
+            setCell(ivec2(new_p), getMaterialFromID(cell.matID));
+            rb_cells[rb_cell_idx] = cell;
+        }
     };
+
+    barrier();
+
+    for (int i = 0; i < num_rb_cells; i++) {
+        if (rb_cells[i].pos == pos) {
+            setCell(pos, getMaterialFromID(rb_cells[i].matID));
+            //return;
+        }
+    }
 
 
     // Process input

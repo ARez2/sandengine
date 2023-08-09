@@ -52,10 +52,8 @@ Cell getCell(ivec2 pos) {
     ivec4 data = ivec4(texelFetch(input_data, pos, 0));
     // data: ___id___  00000000  00000000  00000000
     int matID = int(data.r);
-    int rb_idx = int(data.g);
-    ivec2 prev_pos = ivec2(data.b, data.a);
 
-    return Cell(getMaterialFromID(matID), pos, rb_idx, prev_pos);
+    return Cell(getMaterialFromID(matID), pos);
 }
 
 Cell getCell(ivec2 pos, ivec2 offset) {
@@ -110,7 +108,7 @@ void setCell(ivec2 pos, Cell cell) {
     };
     
     //imageStore(output_effects, pos, vec4(cell.mat.emission, 1.0));
-    ivec4 data = ivec4(cell.mat.id, cell.rb_idx, cell.prev_pos.x, cell.prev_pos.y);
+    ivec4 data = ivec4(cell.mat.id, 0, 0, 0);
     imageStore(output_data, pos, data);
 
     ivec2[8] neighs = getDiagonalNeighbours(pos);
