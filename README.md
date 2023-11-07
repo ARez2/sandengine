@@ -54,8 +54,25 @@ vec2 new_pos = rotatePoint(self.pos, bodies[my_body_idx].rotation, bodies[my_bod
 ```
 
 ### Add sounds
-
 - ???
+
+### Improve lighting
+- Maybe flood fill but each time it travels through a solid cell: light / 4
+- Maybe Bresenham/ DDA in 360° from center point (SpotLight) or from line (DirectionalLight)
+  - https://www.geeksforgeeks.org/dda-line-generation-algorithm-computer-graphics/
+
+
+### Add UI-system
+- egui vs. imgui
+
+### Add Sprite System
+- Convert sprites into SimMaterial
+
+### Improve sandengine-lang
+- Preprocess all files, collect names, so that order becomes irrelevant
+
+### World loading/ unloading
+- Using chunks, save all relevant textures
 
 
 ## YAML File Syntax
