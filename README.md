@@ -124,7 +124,7 @@ Rules will be processed in the order that they are defined.
 
 #### IMPORTANT: Concept of mirrored rules
 
-This simulation uses the margolus offset, meaning each cell can only freely access groups of 2x2 pixels.
+This simulation uses the margolus neighbourhood, meaning each cell can only freely access groups of 2x2 pixels.
 That means that "normally" you would **only have access to the own pixel, right,**
 **down and downright** pixel.
 In order to not limit the user too strictly, after each frame the offset is **shifted**
