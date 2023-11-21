@@ -2,3 +2,4 @@
 /.vs
 shaders/gen/*
 /.VSCodeCounter
+.vscode/*
