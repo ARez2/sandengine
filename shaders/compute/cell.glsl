@@ -12,7 +12,8 @@ Cell newCell(Material mat, ivec2 pos) {
 
 struct RBCell {
     int matID;
-    ivec2 orig_pos;
+    ivec2 orig_off;
     ivec2 pos;
+    ivec2 prev_pos;
     int rb_idx;
 };

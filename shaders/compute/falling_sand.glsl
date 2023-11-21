@@ -36,14 +36,14 @@ uniform float time;
 uniform ivec2 simSize;
 uniform int frame;
 
-layout(rgba32f) uniform image2D collision_data;
+layout(r32i) uniform iimage2D collision_data;
 
 layout(binding = 4) uniform sampler2D input_light;
 layout(rgba32f, binding = 5) uniform writeonly image2D output_light;
 layout(rgba32f, binding = 6) uniform writeonly image2D output_effects;
 layout(r32ui, binding = 7) uniform volatile coherent uimage2D image_lock;
 
-layout(std430, binding = 8) buffer RBCells {
+layout(std430, binding = 8) volatile buffer RBCells {
     RBCell rb_cells[];
 };
 
@@ -186,47 +186,84 @@ void main() {
         setCell(pos, MAT_EMPTY);
     }
 
-    barrier();
-    int num_rb_cells = rb_cells.length();
 
-    for (int i = 0; i < num_rb_cells; i++) {
-        if (distance(rb_cells[i].pos, pos) < 5.0) {
-            setCell(pos, MAT_EMPTY);
-            return;
-        }
-    }
-
-    //barrier();
-
+    
     uint rb_cell_idx = gl_GlobalInvocationID.x;
-    if (rb_cell_idx >= 0 && rb_cell_idx < num_rb_cells) {
+    if (rb_cell_idx >= 0 && rb_cell_idx < rb_cells.length()) {
         RBCell cell = rb_cells[rb_cell_idx];
-        setCell(cell.pos, MAT_EMPTY);
+        cell.prev_pos = cell.pos;
+
+        // If the Rigidbody index is valid, proceed
         if (cell.rb_idx >= 0 && cell.rb_idx < bodies.length()) {
             RigidBody rb = bodies[cell.rb_idx];
             float rot = rb.rot;
-            vec2 body_pos = rb.pos;
-            vec2 p = vec2(cell.orig_pos);
+            ivec2 body_pos = ivec2(rb.pos);
+            vec2 p = vec2(cell.orig_off);
             // Position in body-local coordinates
-            vec2 p_local = p - body_pos;
+            vec2 p_local = p;
             // Rotated position in body-local coords
             vec2 p_rot = rotatePoint(p_local, rot);
             // New position in global coords
-            vec2 new_p = p_rot + body_pos;
-            cell.pos = ivec2(new_p);
-            setCell(ivec2(new_p), getMaterialFromID(cell.matID));
+            ivec2 rot_glob_pos = body_pos + ivec2(round(p_rot));
+
+            // Get the cell that was previously at the cells position, might be the RBCell itself
+            Cell prev_cell = getCell(cell.prev_pos);
+            Material rb_mat = getMaterialFromID(cell.matID);
+            
+            int black = 0;
+            int red = int(rb_cell_idx);
+            // Check if we wrote the value, if not, check surrounding pixels
+            if (imageAtomicCompSwap(collision_data, rot_glob_pos, black, red) == black) {
+                ivec2[8] DIRECTIONS = {UP, DOWN, LEFT, RIGHT, UPRIGHT, DOWNLEFT, UPLEFT, DOWNRIGHT};
+
+                for (int i = 0; i < DIRECTIONS.length(); i++) {
+                    ivec2 dir = DIRECTIONS[i];
+                    // Displaced position of the cell
+                    ivec2 disp_pos = rot_glob_pos + dir;
+                    if (imageAtomicCompSwap(collision_data, disp_pos, black, red) != black) {
+                        if (time < 0.1 || prev_cell.mat != rb_mat) {
+                            setCell(disp_pos, rb_mat);
+                        } else {
+                            // Get the cell from the previous iteration
+                            setCell(disp_pos, prev_cell);//getCell(cell.pos)
+                        }
+                        cell.pos = disp_pos;
+                        break;
+                    }
+                }
+            } else {
+                if (time < 0.1 || prev_cell.mat != rb_mat) {
+                    setCell(rot_glob_pos, rb_mat);
+                } else {
+                    setCell(rot_glob_pos, prev_cell);//rb_mat
+                }
+                cell.pos = rot_glob_pos;
+            };
             rb_cells[rb_cell_idx] = cell;
+            
+            barrier(); // Here, all threads/ workers should have (dis-)placed their cells
+            // If some RBCell moved out of this position, clear the cell
+            if (prev_cell.mat != MAT_EMPTY && imageLoad(collision_data, cell.prev_pos).r == 0) {
+                setCell(cell.prev_pos, MAT_EMPTY);
+                return;
+            };
         }
     };
+    
+    // barrier();
 
-    barrier();
+    // int rb_idx = imageLoad(collision_data, pos).r;
+    // if (rb_idx != 0) {
+    //     RBCell cell = rb_cells[rb_idx];
+    //     // imageStore(output_color, cell.prev_pos, vec4(0.0, 0.0, 1.0, 1.0));
+    //     // imageStore(output_color, cell.pos, vec4(1.0, 0.0, 0.0, 1.0));
+    // } else {
+    //     //setCell(pos, MAT_EMPTY);
+    //     //imageStore(output_color, pos, vec4(0.0, 0.0, 0.0, 1.0));
+    // };
+    // imageStore(output_color, pos, vec4(float(rb_idx), 0.0, 0.0, 1.0));
 
-    for (int i = 0; i < num_rb_cells; i++) {
-        if (rb_cells[i].pos == pos) {
-            setCell(pos, getMaterialFromID(rb_cells[i].matID));
-            //return;
-        }
-    }
+    return;
 
 
     // Process input

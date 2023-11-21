@@ -103,5 +103,5 @@ void main() {
     //f_color.a = 1.0;
     //f_color = light;
     //f_color = vec4(ambient, 1.0);
-    //f_color = textureLod(tex, v_tex_coords, 2.0);
+    //f_color = texture(color_tex, v_tex_coords, 0.0);
 }

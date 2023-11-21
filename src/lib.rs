@@ -50,7 +50,7 @@ fn build_compute_shaders() {
                     .split_at(start_idx + searchstr.len()).1
                     .split("\"").next()
                     .unwrap();
-            println!("{}: Include path: {}", path.clone().display(), incl_path);
+            //println!("{}: Include path: {}", path.clone().display(), incl_path);
             let incl_src = std::fs::read_to_string(path.parent().unwrap().join(incl_path));
             if let Ok(mut incl_src) = incl_src {
                 incl_src.push_str("\n\n\n");
