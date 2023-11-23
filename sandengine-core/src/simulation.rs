@@ -189,7 +189,7 @@ impl Simulation {
 
     /// Runs the simulation for one step
     pub fn run(&mut self) {
-        self.collision_data.as_surface().clear_color(0.0, 0.0, 0.0, 1.0);
+        //self.collision_data.as_surface().clear_color(0.0, 0.0, 0.0, 1.0);
 
         // Updates simulation parameters
         let mut rng = rand::thread_rng();
@@ -201,7 +201,7 @@ impl Simulation {
             //println!("{}", (((map.bodies[0].rot.to_degrees() + 0.25) * 45.0).round() / 45.0));
             map.bodies[0] = SimRigidBody {
                 id: 0,
-                pos: [100.0, 100.0 + 20.0*(0.01*self.params.frame as f32).sin()],//map.bodies[0].pos[1] + 0.1
+                pos: [100.0, 100.0 + 40.0*(0.01*self.params.frame as f32).sin()],//map.bodies[0].pos[1] + 0.1
                 rot: (self.params.time.to_degrees() + 0.25).to_radians(),
                 ..Default::default()
             };

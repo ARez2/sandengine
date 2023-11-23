@@ -182,13 +182,24 @@ void main() {
         return;
     };
 
-    if (time < 0.1) {
+    if (frame == 0) {
         setCell(pos, MAT_EMPTY);
+        return;
     }
 
 
+    // Define some constant values, to be used in the collision_data image
+    int COL_EMPTY = 0;
+    int COL_QD_CLEAR = 1;
+    int COL_MIN_RB_IDX = 3;
+    // If there was a cell here in a previous iteration, queue it for deletion
+    if (imageLoad(collision_data, pos).r >= COL_MIN_RB_IDX) {
+        imageAtomicExchange(collision_data, pos, COL_QD_CLEAR);
+    };
+    barrier();
     
     uint rb_cell_idx = gl_GlobalInvocationID.x;
+    // Use the gl_GlobalInvocationID to process each cell from the rb_cells uniform
     if (rb_cell_idx >= 0 && rb_cell_idx < rb_cells.length()) {
         RBCell cell = rb_cells[rb_cell_idx];
         cell.prev_pos = cell.pos;
@@ -205,63 +216,69 @@ void main() {
             vec2 p_rot = rotatePoint(p_local, rot);
             // New position in global coords
             ivec2 rot_glob_pos = body_pos + ivec2(round(p_rot));
-
-            // Get the cell that was previously at the cells position, might be the RBCell itself
-            Cell prev_cell = getCell(cell.prev_pos);
-            Material rb_mat = getMaterialFromID(cell.matID);
             
-            int black = 0;
-            int red = int(rb_cell_idx);
-            // Check if we wrote the value, if not, check surrounding pixels
-            if (imageAtomicCompSwap(collision_data, rot_glob_pos, black, red) == black) {
+            // Check if the cell is empty or queued for clearing, set it to be filled if yes
+            if (imageAtomicCompSwap(collision_data, rot_glob_pos, COL_EMPTY, COL_FILLED) == COL_EMPTY
+            || imageAtomicCompSwap(collision_data, rot_glob_pos, COL_QD_CLEAR, COL_FILLED) == COL_QD_CLEAR) {
                 ivec2[8] DIRECTIONS = {UP, DOWN, LEFT, RIGHT, UPRIGHT, DOWNLEFT, UPLEFT, DOWNRIGHT};
-
+                // Try out all neighbouring positions
                 for (int i = 0; i < DIRECTIONS.length(); i++) {
                     ivec2 dir = DIRECTIONS[i];
                     // Displaced position of the cell
                     ivec2 disp_pos = rot_glob_pos + dir;
-                    if (imageAtomicCompSwap(collision_data, disp_pos, black, red) != black) {
-                        if (time < 0.1 || prev_cell.mat != rb_mat) {
-                            setCell(disp_pos, rb_mat);
-                        } else {
-                            // Get the cell from the previous iteration
-                            setCell(disp_pos, prev_cell);//getCell(cell.pos)
-                        }
+                    
+                    // Check if the cell is empty or queued for clearing, set it to be filled if yes
+                    if (imageAtomicCompSwap(collision_data, disp_pos, COL_EMPTY, COL_FILLED) == COL_EMPTY
+                    || imageAtomicCompSwap(collision_data, disp_pos, COL_QD_CLEAR, COL_FILLED) == COL_QD_CLEAR) {
+                        // if we found an empty position, write our rb_cell_idx into the image, so that no other cell can use it
+                        imageAtomicExchange(collision_data, disp_pos, int(rb_cell_idx + COL_MIN_RB_IDX));
                         cell.pos = disp_pos;
                         break;
-                    }
+                    };
                 }
             } else {
-                if (time < 0.1 || prev_cell.mat != rb_mat) {
-                    setCell(rot_glob_pos, rb_mat);
-                } else {
-                    setCell(rot_glob_pos, prev_cell);//rb_mat
-                }
+                // if we found an empty position, write our rb_cell_idx into the image, so that no other cell can use it
+                imageAtomicExchange(collision_data, rot_glob_pos, int(rb_cell_idx + COL_MIN_RB_IDX));
                 cell.pos = rot_glob_pos;
             };
             rb_cells[rb_cell_idx] = cell;
-            
-            barrier(); // Here, all threads/ workers should have (dis-)placed their cells
-            // If some RBCell moved out of this position, clear the cell
-            if (prev_cell.mat != MAT_EMPTY && imageLoad(collision_data, cell.prev_pos).r == 0) {
-                setCell(cell.prev_pos, MAT_EMPTY);
-                return;
-            };
         }
     };
     
-    // barrier();
+    barrier(); // Here, all threads/ workers should have (dis-)placed their cells
 
-    // int rb_idx = imageLoad(collision_data, pos).r;
-    // if (rb_idx != 0) {
-    //     RBCell cell = rb_cells[rb_idx];
-    //     // imageStore(output_color, cell.prev_pos, vec4(0.0, 0.0, 1.0, 1.0));
-    //     // imageStore(output_color, cell.pos, vec4(1.0, 0.0, 0.0, 1.0));
-    // } else {
-    //     //setCell(pos, MAT_EMPTY);
-    //     //imageStore(output_color, pos, vec4(0.0, 0.0, 0.0, 1.0));
-    // };
-    // imageStore(output_color, pos, vec4(float(rb_idx), 0.0, 0.0, 1.0));
+    //#define DRAW_PHYSICS_COLORS
+    int col_img = imageLoad(collision_data, pos).r;
+
+    #ifdef DRAW_PHYSICS_COLORS
+    if (col_img == COL_QD_CLEAR) {
+        imageStore(output_color, pos, vec4(0.0, 0.0, 1.0, 1.0));
+    } else if (col_img == COL_EMPTY) {
+        imageStore(output_color, pos, vec4(0.0, 0.0, 0.0, 1.0));
+    } else if (col_img == COL_FILLED) {
+        imageStore(output_color, pos, vec4(1.0, 0.0, 0.0, 1.0));
+    };
+    barrier();
+    #endif
+
+    // If the current position is queued for deletion, set it to Empty
+    if (col_img == COL_QD_CLEAR) {
+        setCell(pos, MAT_EMPTY);
+        imageAtomicExchange(collision_data, pos, COL_EMPTY);
+    // If some RBCell wants to go into this position, set it here
+    } else if (col_img >= COL_MIN_RB_IDX) {
+        RBCell cell = rb_cells[col_img - COL_MIN_RB_IDX];
+        Cell prev_cell = getCell(cell.prev_pos);
+        Material rb_mat = getMaterialFromID(cell.matID);
+
+        // In the beginning, the cells of the rigidbody need to be "created", so if 
+        // the simulation just started, use the cell material
+        if (frame < 2 || prev_cell.mat != rb_mat) {
+            setCell(pos, rb_mat);
+        } else {
+            setCell(pos, prev_cell);//rb_mat
+        }
+    };
 
     return;
 
