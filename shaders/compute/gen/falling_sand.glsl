@@ -777,7 +777,6 @@ void main() {
     // Define some constant values, to be used in the collision_data image
     int COL_EMPTY = 0;
     int COL_QD_CLEAR = 1;
-    int COL_FILLED = 2;
     int COL_MIN_RB_IDX = 3;
     // If there was a cell here in a previous iteration, queue it for deletion
     if (imageLoad(collision_data, pos).r >= COL_MIN_RB_IDX) {
@@ -804,9 +803,10 @@ void main() {
             // New position in global coords
             ivec2 rot_glob_pos = body_pos + ivec2(round(p_rot));
             
-            // Check if the cell is empty or queued for clearing, set it to be filled if yes
-            if (imageAtomicCompSwap(collision_data, rot_glob_pos, COL_EMPTY, COL_FILLED) == COL_EMPTY
-            || imageAtomicCompSwap(collision_data, rot_glob_pos, COL_QD_CLEAR, COL_FILLED) == COL_QD_CLEAR) {
+            int img_write_idx = int(rb_cell_idx + COL_MIN_RB_IDX);
+            // Check if the cell is empty or queued for clearing, set it to be our rb_cell_idx, so that no other cell can use it
+            if (imageAtomicCompSwap(collision_data, rot_glob_pos, COL_EMPTY, img_write_idx) == COL_EMPTY
+            || imageAtomicCompSwap(collision_data, rot_glob_pos, COL_QD_CLEAR, img_write_idx) == COL_QD_CLEAR) {
                 ivec2[8] DIRECTIONS = {UP, DOWN, LEFT, RIGHT, UPRIGHT, DOWNLEFT, UPLEFT, DOWNRIGHT};
                 // Try out all neighbouring positions
                 for (int i = 0; i < DIRECTIONS.length(); i++) {
@@ -814,18 +814,14 @@ void main() {
                     // Displaced position of the cell
                     ivec2 disp_pos = rot_glob_pos + dir;
                     
-                    // Check if the cell is empty or queued for clearing, set it to be filled if yes
-                    if (imageAtomicCompSwap(collision_data, disp_pos, COL_EMPTY, COL_FILLED) == COL_EMPTY
-                    || imageAtomicCompSwap(collision_data, disp_pos, COL_QD_CLEAR, COL_FILLED) == COL_QD_CLEAR) {
-                        // if we found an empty position, write our rb_cell_idx into the image, so that no other cell can use it
-                        imageAtomicExchange(collision_data, disp_pos, int(rb_cell_idx + COL_MIN_RB_IDX));
+                    // Check if the cell is empty or queued for clearing, set it to be our rb_cell_idx, so that no other cell can use it
+                    if (imageAtomicCompSwap(collision_data, disp_pos, COL_EMPTY, img_write_idx) == COL_EMPTY
+                    || imageAtomicCompSwap(collision_data, disp_pos, COL_QD_CLEAR, img_write_idx) == COL_QD_CLEAR) {
                         cell.pos = disp_pos;
                         break;
                     };
                 }
             } else {
-                // if we found an empty position, write our rb_cell_idx into the image, so that no other cell can use it
-                imageAtomicExchange(collision_data, rot_glob_pos, int(rb_cell_idx + COL_MIN_RB_IDX));
                 cell.pos = rot_glob_pos;
             };
             rb_cells[rb_cell_idx] = cell;
@@ -834,19 +830,8 @@ void main() {
     
     barrier(); // Here, all threads/ workers should have (dis-)placed their cells
 
-    //#define DRAW_PHYSICS_COLORS
+    #define DRAW_PHYSICS_COLORS
     int col_img = imageLoad(collision_data, pos).r;
-
-    #ifdef DRAW_PHYSICS_COLORS
-    if (col_img == COL_QD_CLEAR) {
-        imageStore(output_color, pos, vec4(0.0, 0.0, 1.0, 1.0));
-    } else if (col_img == COL_EMPTY) {
-        imageStore(output_color, pos, vec4(0.0, 0.0, 0.0, 1.0));
-    } else if (col_img == COL_FILLED) {
-        imageStore(output_color, pos, vec4(1.0, 0.0, 0.0, 1.0));
-    };
-    barrier();
-    #endif
 
     // If the current position is queued for deletion, set it to Empty
     if (col_img == COL_QD_CLEAR) {
@@ -866,6 +851,17 @@ void main() {
             setCell(pos, prev_cell);//rb_mat
         }
     };
+
+    #ifdef DRAW_PHYSICS_COLORS
+    if (col_img == COL_QD_CLEAR) {
+        imageStore(output_color, pos, vec4(0.0, 0.0, 1.0, 1.0));
+    } else if (col_img == COL_EMPTY) {
+        imageStore(output_color, pos, vec4(0.0, 0.0, 0.0, 1.0));
+    } else if (col_img >= COL_MIN_RB_IDX) {
+        imageStore(output_color, pos, vec4(1.0, 0.0, 0.0, 1.0));
+    };
+    barrier();
+    #endif
 
     return;
 
