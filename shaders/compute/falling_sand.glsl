@@ -78,59 +78,7 @@ Cell simulate() {
         swap(down, downright);
     }
 
-
     applyMirroredRules(self, right, down, downright, rand, pos_rounded);
-    // float ownDensity = self.mat.density;
-
-    // // The lower, the less likely it will be to fall diagonally, forming higher piles
-    // // TODO: Make this a material property
-    // float downspread = 0.7;
-
-    // // First process movable solids and if that fails, process liquid movements
-    // if (shouldDoMovSolidStep(self)) {
-    //     if (down.mat.density < ownDensity) {
-    //         swap(self, down);
-    //     } else if (right.mat.density < ownDensity && downright.mat.density < ownDensity) {
-    //         if (rand1.z < downspread) swap(self, downright);
-    //     //  We couldnt move using movSolidStep, so now try liquid movement
-    //     } else if (shouldDoLiquidStep(self)) {
-    //         if (right.mat.density < ownDensity) {
-    //             swap(self, right);
-    //         }
-    //     }
-    // }
-    
-    // if (shouldDoGasStep(down)) {
-    //     float gasDissolveChance = 0.01;
-    //     if (rand1.y < gasDissolveChance) {
-    //         down = newCell(EMPTY, pos_rounded);
-    //     } else {
-    //         if (!isSolid(self) && down.mat.density < self.mat.density) {
-    //             swap(down, self);
-    //         } else if (!isSolid(right) && down.mat.density < right.mat.density) {
-    //             swap(down, right);
-    //         }
-    //     }
-    // } else if (shouldDoLiquidStep(down)) {
-    //     if (downright.mat.density < down.mat.density) {
-    //         swap(down, downright);
-    //     }
-    // }
-
-
-    // if (isEmpty(self)) {
-    //     if (isPlant(down)) {
-    //         if (rand1.x < 0.0001) self = newCell(VINE, pos_rounded);
-    //     } else if (down.mat == SAND && downright.mat == WATER) {
-    //         if (rand1.x < 0.01) self = newCell(VINE, pos_rounded);
-    //     }
-    // }
-
-    // if (isPlant(self) && isEmpty(down) && isEmpty(right) && isEmpty(downright)) {
-    //     self = newCell(EMPTY, pos_rounded);
-    //     down = newCell(VINE, pos_rounded);
-    // }
-
 
     if (shouldMirror) {
         swap(self, right);
