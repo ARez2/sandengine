@@ -7,8 +7,6 @@ pub mod simulation;
 use sandengine_lang::parser::SandMaterial;
 use simulation::Simulation;
 
-pub mod physics;
-
 pub mod renderer;
 use renderer::{Renderer};
 pub use renderer::RendererDisplay;

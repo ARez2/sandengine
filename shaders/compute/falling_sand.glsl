@@ -43,22 +43,6 @@ layout(rgba32f, binding = 5) uniform writeonly image2D output_light;
 layout(rgba32f, binding = 6) uniform writeonly image2D output_effects;
 layout(r32ui, binding = 7) uniform volatile coherent uimage2D image_lock;
 
-layout(std430, binding = 8) buffer RBCells {
-    RBCell rb_cells[];
-};
-
-struct RigidBody {
-    int id;
-    vec2 pos;
-    float rot;
-};
-
-uniform RigidBodies {
-    RigidBody bodies[16];
-};
-
-Cell[8] neighbours;
-
 #include "operations.glsl"
 #include "gen/rules.glsl"
 
@@ -186,48 +170,6 @@ void main() {
         setCell(pos, MAT_EMPTY);
     }
 
-    barrier();
-    int num_rb_cells = rb_cells.length();
-
-    for (int i = 0; i < num_rb_cells; i++) {
-        if (distance(rb_cells[i].pos, pos) < 5.0) {
-            setCell(pos, MAT_EMPTY);
-            return;
-        }
-    }
-
-    //barrier();
-
-    uint rb_cell_idx = gl_GlobalInvocationID.x;
-    if (rb_cell_idx >= 0 && rb_cell_idx < num_rb_cells) {
-        RBCell cell = rb_cells[rb_cell_idx];
-        setCell(cell.pos, MAT_EMPTY);
-        if (cell.rb_idx >= 0 && cell.rb_idx < bodies.length()) {
-            RigidBody rb = bodies[cell.rb_idx];
-            float rot = rb.rot;
-            vec2 body_pos = rb.pos;
-            vec2 p = vec2(cell.orig_pos);
-            // Position in body-local coordinates
-            vec2 p_local = p - body_pos;
-            // Rotated position in body-local coords
-            vec2 p_rot = rotatePoint(p_local, rot);
-            // New position in global coords
-            vec2 new_p = p_rot + body_pos;
-            cell.pos = ivec2(new_p);
-            setCell(ivec2(new_p), getMaterialFromID(cell.matID));
-            rb_cells[rb_cell_idx] = cell;
-        }
-    };
-
-    barrier();
-
-    for (int i = 0; i < num_rb_cells; i++) {
-        if (rb_cells[i].pos == pos) {
-            setCell(pos, getMaterialFromID(rb_cells[i].matID));
-            //return;
-        }
-    }
-
 
     // Process input
     vec2 mousepos = mousePos * vec2(simSize);
@@ -249,13 +191,6 @@ void main() {
     Cell result = simulate();
     setCell(pos, result);
 
-
-    // ivec2[8] neighPositions = getDiagonalNeighbours(pos);
-    // for (int n = 0; n < neighbours.length(); n++) {
-    //     neighbours[n] = getCell(neighPositions[n]);
-    // }
-
-    
 
     #ifdef DEBUG_SHOW_ORIG_POS
     imageStore(output_color, pos, vec4(vec2(getCell(pos).origPos) / vec2(simSize), 0.0, 1.0));
