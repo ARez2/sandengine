@@ -228,13 +228,6 @@ Cell newCell(Material mat, ivec2 pos) {
     return Cell(mat, pos);
 }
 
-struct RBCell {
-    int matID;
-    ivec2 orig_pos;
-    ivec2 pos;
-    int rb_idx;
-};
-
 
 
 //#include "materials.glsl"#define TYPE_EMPTY 0
@@ -348,22 +341,6 @@ layout(binding = 4) uniform sampler2D input_light;
 layout(rgba32f, binding = 5) uniform writeonly image2D output_light;
 layout(rgba32f, binding = 6) uniform writeonly image2D output_effects;
 layout(r32ui, binding = 7) uniform volatile coherent uimage2D image_lock;
-
-layout(std430, binding = 8) buffer RBCells {
-    RBCell rb_cells[];
-};
-
-struct RigidBody {
-    int id;
-    vec2 pos;
-    float rot;
-};
-
-uniform RigidBodies {
-    RigidBody bodies[16];
-};
-
-Cell[8] neighbours;
 
 
 
@@ -543,7 +520,8 @@ void setCell(ivec2 pos, Material mat) {
 
 
 // =============== RULES ===============
-void rule_fall_slide (inout Cell self, inout Cell right, inout Cell down, inout Cell downright, ivec2 pos) {
+void rule_fall_slide (inout Cell self, inout Cell right, inout Cell down, inout Cell downright, vec4 rand, ivec2 pos) {
+    
     if (!(isType_movable_solid(self) || isType_liquid(self))) {
     return;
 }
@@ -559,7 +537,8 @@ void rule_fall_slide (inout Cell self, inout Cell right, inout Cell down, inout 
 }
 }
 
-void rule_horizontal_slide (inout Cell self, inout Cell right, inout Cell down, inout Cell downright, ivec2 pos) {
+void rule_horizontal_slide (inout Cell self, inout Cell right, inout Cell down, inout Cell downright, vec4 rand, ivec2 pos) {
+    
     if (!(isType_liquid(self))) {
     return;
 }
@@ -575,7 +554,8 @@ void rule_horizontal_slide (inout Cell self, inout Cell right, inout Cell down, 
 }
 }
 
-void rule_rise_up (inout Cell self, inout Cell right, inout Cell down, inout Cell downright, ivec2 pos) {
+void rule_rise_up (inout Cell self, inout Cell right, inout Cell down, inout Cell downright, vec4 rand, ivec2 pos) {
+    
     
 
     if (isType_gas(down) &&  !isType_solid(self) && down.mat.density < self.mat.density) {
@@ -589,7 +569,23 @@ void rule_rise_up (inout Cell self, inout Cell right, inout Cell down, inout Cel
 }
 }
 
-void rule_grow (inout Cell self, inout Cell right, inout Cell down, inout Cell downright, ivec2 pos) {
+void rule_dissolve (inout Cell self, inout Cell right, inout Cell down, inout Cell downright, vec4 rand, ivec2 pos) {
+    if (rand.y > 0.004) {
+                        return;
+                    }
+    if (!(self.mat == MAT_smoke)) {
+    return;
+}
+
+    if (isType_gas(self)) {
+    self = newCell(MAT_EMPTY, pos);
+} else {
+    
+}
+}
+
+void rule_grow (inout Cell self, inout Cell right, inout Cell down, inout Cell downright, vec4 rand, ivec2 pos) {
+    
     
 
     if (isType_EMPTY(self) && down.mat == MAT_sand && downright.mat == MAT_water) {
@@ -599,7 +595,8 @@ void rule_grow (inout Cell self, inout Cell right, inout Cell down, inout Cell d
 }
 }
 
-void rule_grow_up (inout Cell self, inout Cell right, inout Cell down, inout Cell downright, ivec2 pos) {
+void rule_grow_up (inout Cell self, inout Cell right, inout Cell down, inout Cell downright, vec4 rand, ivec2 pos) {
+    
     
 
     if (isType_EMPTY(self) && down.mat == MAT_vine) {
@@ -618,11 +615,14 @@ void applyMirroredRules(
     inout Cell right,
     inout Cell down,
     inout Cell downright,
+    vec4 rand,
     ivec2 pos) {
-    rule_fall_slide(self, right, down, downright, pos);
-rule_horizontal_slide(self, right, down, downright, pos);
-rule_grow(self, right, down, downright, pos);
-rule_grow_up(self, right, down, downright, pos);
+    rule_fall_slide(self, right, down, downright, rand, pos);
+rule_horizontal_slide(self, right, down, downright, rand, pos);
+rule_rise_up(self, right, down, downright, rand, pos);
+rule_dissolve(self, right, down, downright, rand, pos);
+rule_grow(self, right, down, downright, rand, pos);
+rule_grow_up(self, right, down, downright, rand, pos);
 }
 
 
@@ -631,6 +631,7 @@ void applyLeftRules(
     inout Cell right,
     inout Cell down,
     inout Cell downright,
+    vec4 rand,
     ivec2 pos) {
     
 }
@@ -640,8 +641,9 @@ void applyRightRules(
     inout Cell right,
     inout Cell down,
     inout Cell downright,
+    vec4 rand,
     ivec2 pos) {
-    rule_rise_up(self, right, down, downright, pos);
+    
 }
 
 
@@ -670,17 +672,17 @@ Cell simulate() {
 
     Cell up = getCell(pos_rounded + UP);
     Cell upright = getCell(pos_rounded + UPRIGHT);
-    vec4 rand1 = hash43(uvec3(pos_rounded, frame));
+    vec4 rand = hash43(uvec3(pos_rounded, frame));
     vec4 rand2 = hash43(uvec3(pos_rounded, frame/8));
 
-    bool shouldMirror = rand1.x < 0.5;
+    bool shouldMirror = rand.x < 0.5;
     if (shouldMirror) {
         swap(self, right);
         swap(down, downright);
     }
 
 
-    applyMirroredRules(self, right, down, downright, pos_rounded);
+    applyMirroredRules(self, right, down, downright, rand, pos_rounded);
     // float ownDensity = self.mat.density;
 
     // // The lower, the less likely it will be to fall diagonally, forming higher piles
@@ -739,9 +741,9 @@ Cell simulate() {
     }
 
     if (!shouldMirror) {
-        applyRightRules(self, right, down, downright, pos_rounded);
+        applyRightRules(self, right, down, downright, rand, pos_rounded);
     } else {
-        applyLeftRules(self, right, down, downright, pos_rounded);
+        applyLeftRules(self, right, down, downright, rand, pos_rounded);
     }
 
     switch (marg_idx) {
@@ -771,48 +773,6 @@ void main() {
         setCell(pos, MAT_EMPTY);
     }
 
-    barrier();
-    int num_rb_cells = rb_cells.length();
-
-    for (int i = 0; i < num_rb_cells; i++) {
-        if (distance(rb_cells[i].pos, pos) < 5.0) {
-            setCell(pos, MAT_EMPTY);
-            return;
-        }
-    }
-
-    //barrier();
-
-    uint rb_cell_idx = gl_GlobalInvocationID.x;
-    if (rb_cell_idx >= 0 && rb_cell_idx < num_rb_cells) {
-        RBCell cell = rb_cells[rb_cell_idx];
-        setCell(cell.pos, MAT_EMPTY);
-        if (cell.rb_idx >= 0 && cell.rb_idx < bodies.length()) {
-            RigidBody rb = bodies[cell.rb_idx];
-            float rot = rb.rot;
-            vec2 body_pos = rb.pos;
-            vec2 p = vec2(cell.orig_pos);
-            // Position in body-local coordinates
-            vec2 p_local = p - body_pos;
-            // Rotated position in body-local coords
-            vec2 p_rot = rotatePoint(p_local, rot);
-            // New position in global coords
-            vec2 new_p = p_rot + body_pos;
-            cell.pos = ivec2(new_p);
-            setCell(ivec2(new_p), getMaterialFromID(cell.matID));
-            rb_cells[rb_cell_idx] = cell;
-        }
-    };
-
-    barrier();
-
-    for (int i = 0; i < num_rb_cells; i++) {
-        if (rb_cells[i].pos == pos) {
-            setCell(pos, getMaterialFromID(rb_cells[i].matID));
-            //return;
-        }
-    }
-
 
     // Process input
     vec2 mousepos = mousePos * vec2(simSize);
@@ -834,13 +794,6 @@ void main() {
     Cell result = simulate();
     setCell(pos, result);
 
-
-    // ivec2[8] neighPositions = getDiagonalNeighbours(pos);
-    // for (int n = 0; n < neighbours.length(); n++) {
-    //     neighbours[n] = getCell(neighPositions[n]);
-    // }
-
-    
 
     #ifdef DEBUG_SHOW_ORIG_POS
     imageStore(output_color, pos, vec4(vec2(getCell(pos).origPos) / vec2(simSize), 0.0, 1.0));

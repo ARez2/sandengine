@@ -11,7 +11,7 @@ use colored::Colorize;
 // ========== Hints that will be displayed on an error message ==========
 const TYPE_HINT_STRING: &'static str = "string";
 const TYPE_HINT_BOOL: &'static str = "bool (true/false)";
-const TYPE_HINT_FLOAT: &'static str = "float";
+const TYPE_HINT_FLOAT: &'static str = "float (0.0 to 1.0)";
 const TYPE_HINT_SEQUENCE: &'static str = "sequence (array, '[...]')";
 const TYPE_HINT_COLOR: &'static str = "sequence (array, '[...]') of 3-4 floats (range 0.0-1.0) OR integers (range 0-255). (With 3 elements, the alpha channel defaults to 1.0)";
 
@@ -26,8 +26,9 @@ const GLOBAL_CELLS: [&'static str; 6] = [
 ];
 
 // ========== Default values for properties ==========
-const DEFAULT_VAL_MIRRORED: bool = false;
+const DEFAULT_VAL_MIRRORED: bool = true;
 const DEFAULT_VAL_PRECONDITION: bool = true;
+const DEFAULT_VAL_PROBABILITY: f32 = 1.0;
 
 
 #[derive(Debug, Error)]
@@ -95,6 +96,8 @@ pub struct SandRule {
     /// Condition that needs to be true in order for the rule to be run.
     /// Can be either a material check or type check
     pub precondition: Option<String>,
+    /// The probability that this rule will be run
+    pub probability: f32,
     /// Whether the rule is used as a base_rule of a type of as extra_rule of a material
     pub used: bool,
 }
@@ -122,6 +125,18 @@ impl GLSLConvertible for SandRule {
             SandRuleType::Mirrored | SandRuleType::Right => "right",
             SandRuleType::Left => "left"
         };
+
+        let probability = {
+            if self.probability != DEFAULT_VAL_PROBABILITY {
+                format!(
+                    "if (rand.y > {}) {{
+                        return;
+                    }}", self.probability)
+            } else {
+                String::new()
+            }
+        };
+
         let precond = match &self.precondition {
             Some(cond) => format!(
 "if (!({})) {{
@@ -130,11 +145,12 @@ impl GLSLConvertible for SandRule {
             None => String::new(),
         };
         format!(
-"void rule_{} (inout Cell self, inout Cell {}, inout Cell down, inout Cell downright, ivec2 pos) {{
-    {}
+"void rule_{rulename} (inout Cell self, inout Cell {celldir}, inout Cell down, inout Cell downright, vec4 rand, ivec2 pos) {{
+    {probability_check}
+    {precondition}
 
-    {}
-}}", self.name, directional_cell, precond, SandRule::get_func_logic(self.if_conds.clone(), self.do_actions.clone()))
+    {ruletext}
+}}", rulename = self.name, celldir = directional_cell, probability_check = probability, precondition = precond, ruletext = SandRule::get_func_logic(self.if_conds.clone(), self.do_actions.clone()))
 
     }
 }
@@ -305,6 +321,7 @@ fn parse_rules(rules: &Mapping, material_names: Vec<String>) -> anyhow::Result<(
         // Parse (possibly nested) if's and do's
         parse_conditionals(key.1, false, format!("rules/{}", name), &mut if_conds, &mut do_actions, &material_names)?;
         
+
         // Checks the input for the 'mirrored' keyword, uses default value if not found
         let is_mirrored = {
             let m = key.1.get("mirrored");
@@ -356,7 +373,21 @@ fn parse_rules(rules: &Mapping, material_names: Vec<String>) -> anyhow::Result<(
             false => None
         };
 
-        // TODO: Use chance key, add way to get random values
+        let prob = key.1.get("probability");
+        let probability = {
+            if let Some(prob) = prob {
+                if let Some(prob) = prob.as_f64() {
+                    prob as f32
+                } else {
+                    bail!(ParsingErr::InvalidType {
+                        wrong_type: "probability",
+                        missing_in: format!("rules/{}", name),
+                        expected: TYPE_HINT_FLOAT })
+                }
+            } else {
+                DEFAULT_VAL_PROBABILITY
+            }
+        };
 
         let rule = SandRule {
             name,
@@ -365,6 +396,7 @@ fn parse_rules(rules: &Mapping, material_names: Vec<String>) -> anyhow::Result<(
             do_actions,
             mirror: is_mirrored,
             precondition,
+            probability,
             used: false,
         };
         //println!("{:#?}", rule);
@@ -466,7 +498,6 @@ fn parse_global_scope(parse_str: &mut String) {
     *parse_str = parse_str.replace(" and ", " && ");
     *parse_str = parse_str.replace("not ", " !");
     
-    // IDEA: Use EMPTY in YAML Syntax
     *parse_str = parse_str.replace("empty", "MAT_EMPTY");
 
     *parse_str = parse_str.replace("SELF", "self");

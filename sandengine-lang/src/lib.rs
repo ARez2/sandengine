@@ -78,13 +78,13 @@ Material getMaterialFromID(int id) {{
             // Depending on the mirrored type of the rule, we call them with different cells
             match r.ruletype {
                 parser::SandRuleType::Mirrored => {
-                    mirrored_rules_call.push_str(format!("rule_{}(self, right, down, downright, pos);\n", r.name).as_str());
+                    mirrored_rules_call.push_str(format!("rule_{}(self, right, down, downright, rand, pos);\n", r.name).as_str());
                 },
                 parser::SandRuleType::Left => {
-                    left_rules_call.push_str(format!("rule_{}(self, left, down, downright, pos);\n", r.name).as_str());
+                    left_rules_call.push_str(format!("rule_{}(self, left, down, downright, rand, pos);\n", r.name).as_str());
                 },
                 parser::SandRuleType::Right => {
-                    right_rules_call.push_str(format!("rule_{}(self, right, down, downright, pos);\n", r.name).as_str());
+                    right_rules_call.push_str(format!("rule_{}(self, right, down, downright, rand, pos);\n", r.name).as_str());
                 }
             };
         }
@@ -106,6 +106,7 @@ void applyMirroredRules(
     inout Cell right,
     inout Cell down,
     inout Cell downright,
+    vec4 rand,
     ivec2 pos) {{
     {}
 }}
@@ -116,6 +117,7 @@ void applyLeftRules(
     inout Cell right,
     inout Cell down,
     inout Cell downright,
+    vec4 rand,
     ivec2 pos) {{
     {}
 }}
@@ -125,6 +127,7 @@ void applyRightRules(
     inout Cell right,
     inout Cell down,
     inout Cell downright,
+    vec4 rand,
     ivec2 pos) {{
     {}
 }}", rule_functions, mirrored_rules_call.trim_end(), left_rules_call.trim_end(), right_rules_call.trim_end());

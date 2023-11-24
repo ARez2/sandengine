@@ -1,6 +1,7 @@
 
 // =============== RULES ===============
-void rule_fall_slide (inout Cell self, inout Cell right, inout Cell down, inout Cell downright, ivec2 pos) {
+void rule_fall_slide (inout Cell self, inout Cell right, inout Cell down, inout Cell downright, vec4 rand, ivec2 pos) {
+    
     if (!(isType_movable_solid(self) || isType_liquid(self))) {
     return;
 }
@@ -16,7 +17,8 @@ void rule_fall_slide (inout Cell self, inout Cell right, inout Cell down, inout 
 }
 }
 
-void rule_horizontal_slide (inout Cell self, inout Cell right, inout Cell down, inout Cell downright, ivec2 pos) {
+void rule_horizontal_slide (inout Cell self, inout Cell right, inout Cell down, inout Cell downright, vec4 rand, ivec2 pos) {
+    
     if (!(isType_liquid(self))) {
     return;
 }
@@ -32,7 +34,8 @@ void rule_horizontal_slide (inout Cell self, inout Cell right, inout Cell down, 
 }
 }
 
-void rule_rise_up (inout Cell self, inout Cell right, inout Cell down, inout Cell downright, ivec2 pos) {
+void rule_rise_up (inout Cell self, inout Cell right, inout Cell down, inout Cell downright, vec4 rand, ivec2 pos) {
+    
     
 
     if (isType_gas(down) &&  !isType_solid(self) && down.mat.density < self.mat.density) {
@@ -46,7 +49,23 @@ void rule_rise_up (inout Cell self, inout Cell right, inout Cell down, inout Cel
 }
 }
 
-void rule_grow (inout Cell self, inout Cell right, inout Cell down, inout Cell downright, ivec2 pos) {
+void rule_dissolve (inout Cell self, inout Cell right, inout Cell down, inout Cell downright, vec4 rand, ivec2 pos) {
+    if (rand.y > 0.004) {
+                        return;
+                    }
+    if (!(self.mat == MAT_smoke)) {
+    return;
+}
+
+    if (isType_gas(self)) {
+    self = newCell(MAT_EMPTY, pos);
+} else {
+    
+}
+}
+
+void rule_grow (inout Cell self, inout Cell right, inout Cell down, inout Cell downright, vec4 rand, ivec2 pos) {
+    
     
 
     if (isType_EMPTY(self) && down.mat == MAT_sand && downright.mat == MAT_water) {
@@ -56,7 +75,8 @@ void rule_grow (inout Cell self, inout Cell right, inout Cell down, inout Cell d
 }
 }
 
-void rule_grow_up (inout Cell self, inout Cell right, inout Cell down, inout Cell downright, ivec2 pos) {
+void rule_grow_up (inout Cell self, inout Cell right, inout Cell down, inout Cell downright, vec4 rand, ivec2 pos) {
+    
     
 
     if (isType_EMPTY(self) && down.mat == MAT_vine) {
@@ -75,11 +95,14 @@ void applyMirroredRules(
     inout Cell right,
     inout Cell down,
     inout Cell downright,
+    vec4 rand,
     ivec2 pos) {
-    rule_fall_slide(self, right, down, downright, pos);
-rule_horizontal_slide(self, right, down, downright, pos);
-rule_grow(self, right, down, downright, pos);
-rule_grow_up(self, right, down, downright, pos);
+    rule_fall_slide(self, right, down, downright, rand, pos);
+rule_horizontal_slide(self, right, down, downright, rand, pos);
+rule_rise_up(self, right, down, downright, rand, pos);
+rule_dissolve(self, right, down, downright, rand, pos);
+rule_grow(self, right, down, downright, rand, pos);
+rule_grow_up(self, right, down, downright, rand, pos);
 }
 
 
@@ -88,6 +111,7 @@ void applyLeftRules(
     inout Cell right,
     inout Cell down,
     inout Cell downright,
+    vec4 rand,
     ivec2 pos) {
     
 }
@@ -97,6 +121,7 @@ void applyRightRules(
     inout Cell right,
     inout Cell down,
     inout Cell downright,
+    vec4 rand,
     ivec2 pos) {
-    rule_rise_up(self, right, down, downright, pos);
+    
 }

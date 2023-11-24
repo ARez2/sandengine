@@ -69,17 +69,17 @@ Cell simulate() {
 
     Cell up = getCell(pos_rounded + UP);
     Cell upright = getCell(pos_rounded + UPRIGHT);
-    vec4 rand1 = hash43(uvec3(pos_rounded, frame));
+    vec4 rand = hash43(uvec3(pos_rounded, frame));
     vec4 rand2 = hash43(uvec3(pos_rounded, frame/8));
 
-    bool shouldMirror = rand1.x < 0.5;
+    bool shouldMirror = rand.x < 0.5;
     if (shouldMirror) {
         swap(self, right);
         swap(down, downright);
     }
 
 
-    applyMirroredRules(self, right, down, downright, pos_rounded);
+    applyMirroredRules(self, right, down, downright, rand, pos_rounded);
     // float ownDensity = self.mat.density;
 
     // // The lower, the less likely it will be to fall diagonally, forming higher piles
@@ -138,9 +138,9 @@ Cell simulate() {
     }
 
     if (!shouldMirror) {
-        applyRightRules(self, right, down, downright, pos_rounded);
+        applyRightRules(self, right, down, downright, rand, pos_rounded);
     } else {
-        applyLeftRules(self, right, down, downright, pos_rounded);
+        applyLeftRules(self, right, down, downright, rand, pos_rounded);
     }
 
     switch (marg_idx) {

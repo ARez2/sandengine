@@ -20,6 +20,10 @@ rules:
       if: isType_gas(DOWN) and not isType_solid(RIGHT) and DOWN.mat.density < RIGHT.mat.density
       do: SWAP DOWN RIGHT
     precondition: false
+  dissolve:
+    if: isType_gas(SELF)
+    probability: 0.004
+    do: SET SELF EMPTY
   grow:
     if: isType_EMPTY(SELF) and DOWN.mat == sand and DOWNRIGHT.mat == water
     do: SET SELF vine
@@ -80,6 +84,9 @@ materials:
     type: gas
     color: [0.3, 0.3, 0.3, 0.3]
     density: 0.1
+    extra_rules: [
+      dissolve
+    ]
   
   toxic_sludge:
     type: liquid
