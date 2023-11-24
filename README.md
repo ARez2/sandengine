@@ -154,8 +154,8 @@ rules:
         #     - <action 2>
         #     - ...
         # OPTIONAL: Only if a random value from 0-1 is smaller than this value
-        # the do action will be run
-        chance: 1.0
+        # the rule will be run
+        probability: 1.0
 
         # OPTIONAL: Provides an alternative path for when the if condition is false
         else:
