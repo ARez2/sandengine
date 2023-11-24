@@ -1,11 +1,6 @@
 # Sandengine - a falling sand simulation engine written in GLSL and Rust
 
 
-## Note
-
-This project is currently on hold, until I find motivation to work on it further. I got burned out from working on it so much :)
-
-
 ## A note on compatibility
 
 Even though the fragment and vertex shader use OpenGL version 1.4, the compute
