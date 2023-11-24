@@ -1,7 +1,7 @@
 use glium::{texture::{self, RawImage2d}, uniforms, Surface};
 use rand::Rng;
 use image::{io::Reader as ImageReader, GenericImageView};
-use sandengine_lang::parser::SandMaterial;
+use sandengine_lang::parser::materials::SandMaterial;
 use crate::RendererDisplay;
 
 

@@ -4,7 +4,7 @@ extern crate glium;
 use std::time::Instant;
 
 pub mod simulation;
-use sandengine_lang::parser::SandMaterial;
+use sandengine_lang::parser::materials::SandMaterial;
 use simulation::Simulation;
 
 pub mod renderer;

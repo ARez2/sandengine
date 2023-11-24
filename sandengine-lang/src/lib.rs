@@ -77,13 +77,13 @@ Material getMaterialFromID(int id) {{
             rule_functions.push_str(format!("{}\n\n", r.get_glsl_code()).as_str());
             // Depending on the mirrored type of the rule, we call them with different cells
             match r.ruletype {
-                parser::SandRuleType::Mirrored => {
+                parser::rules::SandRuleType::Mirrored => {
                     mirrored_rules_call.push_str(format!("rule_{}(self, right, down, downright, rand, pos);\n", r.name).as_str());
                 },
-                parser::SandRuleType::Left => {
+                parser::rules::SandRuleType::Left => {
                     left_rules_call.push_str(format!("rule_{}(self, left, down, downright, rand, pos);\n", r.name).as_str());
                 },
-                parser::SandRuleType::Right => {
+                parser::rules::SandRuleType::Right => {
                     right_rules_call.push_str(format!("rule_{}(self, right, down, downright, rand, pos);\n", r.name).as_str());
                 }
             };
