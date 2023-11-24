@@ -4,7 +4,7 @@
 ## A note on compatibility
 
 Even though the fragment and vertex shader use OpenGL version 1.4, the compute
-shaders which runs the simulation **requires OpenGL 4.3** (version, where compute
+shaders which runs the simulation **requires OpenGL 4.3** (version from 2012, where compute
 shaders were introduced).
 
 
@@ -49,8 +49,25 @@ vec2 new_pos = rotatePoint(self.pos, bodies[my_body_idx].rotation, bodies[my_bod
 ```
 
 ### Add sounds
-
 - ???
+
+### Improve lighting
+- Maybe flood fill but each time it travels through a solid cell: light / 4
+- Maybe Bresenham/ DDA in 360° from center point (SpotLight) or from line (DirectionalLight)
+  - https://www.geeksforgeeks.org/dda-line-generation-algorithm-computer-graphics/
+
+
+### Add UI-system
+- egui vs. imgui
+
+### Add Sprite System
+- Convert sprites into SimMaterial
+
+### Improve sandengine-lang
+- Preprocess all files, collect names, so that order becomes irrelevant
+
+### World loading/ unloading
+- Using chunks, save all relevant textures
 
 
 ## YAML File Syntax
@@ -102,7 +119,7 @@ Rules will be processed in the order that they are defined.
 
 #### IMPORTANT: Concept of mirrored rules
 
-This simulation uses the margolus offset, meaning each cell can only freely access groups of 2x2 pixels.
+This simulation uses the margolus neighbourhood, meaning each cell can only freely access groups of 2x2 pixels.
 That means that "normally" you would **only have access to the own pixel, right,**
 **down and downright** pixel.
 In order to not limit the user too strictly, after each frame the offset is **shifted**
