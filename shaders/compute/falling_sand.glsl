@@ -265,7 +265,7 @@ void main() {
     };
 
     
-    #define DRAW_PHYSICS_COLORS
+    //#define DRAW_PHYSICS_COLORS
     #ifdef DRAW_PHYSICS_COLORS
     if (col_img == COL_QD_CLEAR) {
         imageStore(output_color, pos, vec4(0.0, 0.0, 1.0, 1.0));

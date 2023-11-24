@@ -830,9 +830,7 @@ void main() {
     
     barrier(); // Here, all threads/ workers should have (dis-)placed their cells
 
-    #define DRAW_PHYSICS_COLORS
     int col_img = imageLoad(collision_data, pos).r;
-
     // If the current position is queued for deletion, set it to Empty
     if (col_img == COL_QD_CLEAR) {
         setCell(pos, MAT_EMPTY);
@@ -852,6 +850,8 @@ void main() {
         }
     };
 
+    
+    //#define DRAW_PHYSICS_COLORS
     #ifdef DRAW_PHYSICS_COLORS
     if (col_img == COL_QD_CLEAR) {
         imageStore(output_color, pos, vec4(0.0, 0.0, 1.0, 1.0));
