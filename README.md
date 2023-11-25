@@ -200,8 +200,6 @@ rules:
 
 Types are just a collection of rules, coupled with inheritance.
 
-A parent type must be defined **before the child** (inheritant) can reference it.
-
 ```yaml
 # Collection of all types, this field name cannot be changed and
 # will throw an error if non-existent
