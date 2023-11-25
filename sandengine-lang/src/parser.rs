@@ -1,8 +1,8 @@
 use std::fmt::Debug;
 
-use anyhow::bail;
+use anyhow::{anyhow, bail};
 use thiserror::Error;
-use serde_yaml::{self, Value};
+use serde_yaml::{self, Value, Mapping};
 
 use colored::Colorize;
 
@@ -21,6 +21,7 @@ const TYPE_HINT_BOOL: &'static str = "bool (true/false)";
 const TYPE_HINT_FLOAT: &'static str = "float (0.0 to 1.0)";
 const TYPE_HINT_SEQUENCE: &'static str = "sequence (array, '[...]')";
 const TYPE_HINT_COLOR: &'static str = "sequence (array, '[...]') of 3-4 floats (range 0.0-1.0) OR integers (range 0-255). (With 3 elements, the alpha channel defaults to 1.0)";
+const TYPE_HINT_MAPPING: &'static str = "mapping (dictionary-like)";
 
 // ========== List of valid global scope Cell names ==========
 const GLOBAL_CELLNAMES: [&'static str; 6] = [
@@ -103,16 +104,21 @@ pub fn parse_string(f: &str) -> anyhow::Result<ParsingResult> {
     let mut types: Vec<SandType> = vec![];
     let mut materials: Vec<SandMaterial> = vec![];
 
-    // Checks the input for 'rules', 'types' and 'materials', panicks if not found
-    let raw_rules = data.get("rules").expect("[sandengine-lang]: No 'rules' found in input file.");
-    let raw_types = data.get("types").expect("[sandengine-lang]: No 'types' found in input file.");
-    let raw_materials = data.get("materials").expect("[sandengine-lang]: No 'materials' found in input file.");
-
-    // Pre-parses just the material names in order for the rules to be able to recognize them
-    let material_names = materials::parse_material_names(raw_materials.as_mapping().expect("[sandengine-lang]: 'materials' is not a mapping (dictionary-like)"))?;
+    // Checks the input for 'rules', 'types' and 'materials', throws error if not
+    // Afterwards, tries to convert them into dictionaries (mappings), errors if not possible
+    let raw_rules = check_and_convert_key_to_mapping(&data, "rules")?;
+    let raw_types = check_and_convert_key_to_mapping(&data, "types")?;
+    let raw_materials = check_and_convert_key_to_mapping(&data, "materials")?;
     
+    // Pre-parse the rule-/ material-/ type names in order for them to be referenced earlier than defined
+    let rule_names = preparse_keys(&raw_rules,"rules")?;
+    let mut type_names = preparse_keys(&raw_types,"types")?;
+    type_names.push(String::from("EMPTY"));
+    let mut material_names = preparse_keys(&raw_materials,"materials")?;
+    material_names.push(String::from("EMPTY"));
+
     // Try to parse the rules
-    let res = rules::parse_rules(raw_rules.as_mapping().expect("[sandengine-lang]: 'rules' is not a mapping (dictionary-like)"), material_names);
+    let res = rules::parse_rules(&raw_rules, &type_names, &material_names);
     if let Ok(mut result) = res {
         rules.append(&mut result.0);
         data_serialized.append(&mut result.1);
@@ -121,7 +127,7 @@ pub fn parse_string(f: &str) -> anyhow::Result<ParsingResult> {
     }
 
     // Try to parse the types
-    let res = types::parse_types(raw_types.as_mapping().expect("[sandengine-lang]: 'types' is not a mapping (dictionary-like)"), &mut rules);
+    let res = types::parse_types(&raw_types, &mut rules, &rule_names, &type_names);
     if let Ok(mut result) = res {
         types.append(&mut result.0);
         data_serialized.append(&mut result.1);
@@ -130,7 +136,7 @@ pub fn parse_string(f: &str) -> anyhow::Result<ParsingResult> {
     }
 
     // Try to parse the materials
-    let res = materials::parse_materials(raw_materials.as_mapping().expect("[sandengine-lang]: 'materials' is not a mapping (dictionary-like)"), &mut rules, &types);
+    let res = materials::parse_materials(&raw_materials, &mut rules, &type_names);
     if let Ok(mut result) = res {
         materials.append(&mut result.0);
         data_serialized.append(&mut result.1);
@@ -144,6 +150,42 @@ pub fn parse_string(f: &str) -> anyhow::Result<ParsingResult> {
         data_serialized
     })
 }
+
+
+/// Looks at all the keys in some section of the YAML and collects them
+fn preparse_keys(map: &Mapping, err_name: &str) -> anyhow::Result<Vec<String>> {
+    let mut keynames = vec![];
+    for key in map {
+        let name = key.0.as_str()
+            .ok_or(anyhow!(ParsingErr::InvalidType {
+                wrong_type: key.0.clone(),
+                missing_in: err_name.to_string(),
+                expected: TYPE_HINT_STRING
+            }))?
+            .to_string();
+        keynames.push(name);
+    };
+    Ok(keynames)
+}
+
+
+/// Checks if the keyname exists in the dictionary and tries to convert it to a Mapping
+/// Throws ParsingErr::MissingField if nonexistent or ParsingErr::InvalidType if not a Mapping
+fn check_and_convert_key_to_mapping<'a>(dict: &'a Value, keyname: &str) -> anyhow::Result<&'a Mapping> {
+    let key = dict.get(keyname)
+        .ok_or(anyhow!(ParsingErr::MissingField::<bool> {
+            field_name: keyname.to_string(),
+            missing_in: "Root/ Base level of YAML file".to_string()
+        }))?;
+    let map = key.as_mapping()
+        .ok_or(anyhow!(ParsingErr::InvalidType {
+            wrong_type: key.clone(),
+            missing_in: "Root/ Base level of YAML file".to_string(),
+            expected: TYPE_HINT_MAPPING
+        }))?;
+    Ok(map)
+}
+
 
 
 /// Helper function to convert a mapping into a [f32; 4] (the rust type representing a color)

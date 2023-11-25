@@ -20,9 +20,9 @@ pub struct SandType {
     children: Vec<String>,
     /// List of names of the rules that are applied to all
     /// materials of this type
+    /// 
+    /// **NOTE: This is unused right now but might be used in UI**
     pub base_rules: Vec<String>,
-    /// All accumulated rules, including parent rules
-    pub accum_rules: Vec<String>
 }
 impl SandType {
     /// Helper function to generate the function, which checks if a cell is of this type
@@ -48,7 +48,7 @@ impl GLSLConvertible for SandType {
 
 
 /// Parses a serde_yaml Mapping (dict) and converts it into SandType's
-pub fn parse_types(types: &Mapping, rules: &mut Vec<SandRule>) -> anyhow::Result<(Vec<SandType>, Vec<Box<dyn GLSLConvertible>>)> {
+pub fn parse_types(types: &Mapping, rules: &mut Vec<SandRule>, rule_names: &Vec<String>, type_names: &Vec<String>) -> anyhow::Result<(Vec<SandType>, Vec<Box<dyn GLSLConvertible>>)> {
     // Define the default types
     let mut type_structs: Vec<SandType> = vec![
         SandType {
@@ -73,6 +73,21 @@ pub fn parse_types(types: &Mapping, rules: &mut Vec<SandRule>) -> anyhow::Result
         Box::new(type_structs[2].clone())
     ];
     
+    
+    // This will be used in both loops
+    let update_rule_precondition = |rule: &mut SandRule, typename: &str| {
+        // Update the rules precondition to let this type use the rule
+        // = pass the precondition check
+        if let Some(precondition) = &mut rule.precondition {
+            if precondition.is_empty() {
+                rule.precondition = Some(format!("isType_{}(self)", typename));
+            } else {
+                rule.precondition = Some(format!("{} || isType_{}(self)", precondition, typename));
+            }
+        };
+    };
+    
+    // Iterate over all types, check if the inherited class and the base_rules have been defined somewhere
     let mut idx = type_structs.len();
     for sandtype in types {
         // Extract the name of the type
@@ -85,38 +100,24 @@ pub fn parse_types(types: &Mapping, rules: &mut Vec<SandRule>) -> anyhow::Result
             .to_string();
 
         // Processes the inheritance of types (and therefore inheritance of base_rules)
-        let mut accum_rules = vec![];
         let inherits = sandtype.1.get("inherits");
         let mut parent = String::new();
         if let Some(p) = inherits {
             // If the 'inherits' keyword is present but has a wrong type, error
-            let parent_str = p.as_str().ok_or(anyhow!(ParsingErr::InvalidType {
+            parent = p.as_str().ok_or(anyhow!(ParsingErr::InvalidType {
                 wrong_type: "inherits",
                 missing_in: format!("types/{}", name),
                 expected: TYPE_HINT_STRING
-            }))?;
-            // Check previously defined types if they match the 'inherits' string
-            let mut all_types = type_structs.clone();
-            for t in type_structs.iter_mut() {
-                if t.name == parent_str {
-                    parent = parent_str.to_string();
+            }))?.to_string();
+            for typename in type_names {
+                if typename == &parent {
                     // Modifies the parent SandType to add ourselves to its children
                     // the parent needs information of its children for its checker function
-                    add_child_to_type(&t.name, &name, &mut all_types);
-                    // Collects all the parents (and parents-parents, ...) rules
-                    accum_rules = get_accum_rules(&all_types, t);
+                    add_child_to_type(&parent, &name, &mut type_structs);
                 }
-            };
-            type_structs = all_types;
-
-            // If the parent name defined in 'inherits' was not found, error
-            if parent.is_empty() {
-                bail!(ParsingErr::<bool>::NotFound {
-                    missing: parent_str.to_string(),
-                    missing_in: format!("types/{}", name),
-                });
             }
         };
+
         // Check if all rules defined in base_rules exist
         let mut base_rules = vec![];
         let b_rules = sandtype.1.get("base_rules");
@@ -130,35 +131,19 @@ pub fn parse_types(types: &Mapping, rules: &mut Vec<SandRule>) -> anyhow::Result
                             missing_in: format!("types/{}", name),
                             expected: TYPE_HINT_STRING
                         }))?;
+                    
                     // Checks all defined rules for the name of the base_rule
-                    let mut rule_valid = false;
-                    for r in rules.iter_mut() {
-                        if r.name == rulename {
-                            // Rule was used by this type, tell it that it has been used
-                            r.used = true;
-                            base_rules.push(rulename.to_string());
-                            accum_rules.push(rulename.to_string());
-                            
-                            // Update the rules precondition to let this type use the rule
-                            // = pass the precondition check
-                            if let Some(precondition) = &mut r.precondition {
-                                if precondition.is_empty() {
-                                    r.precondition = Some(format!("isType_{}(self)", name));
-                                } else {
-                                    r.precondition = Some(format!("{} || isType_{}(self)", precondition, name));
-                                }
-                            }
-                            rule_valid = true;
-                            break;
-                        }
-                    };
-                    // Referenced rule name was not defined in 'rules', error
-                    if !rule_valid {
-                        bail!(ParsingErr::<bool>::NotFound {
+                    if !rule_names.contains(&rulename.to_string()) {
+                        bail!(anyhow!(ParsingErr::NotFound::<bool> {
                             missing: rulename.to_string(),
-                            missing_in: format!("types/{}/base_rules", name),
-                        });
-                    }
+                            missing_in: format!("types/{}/base_rules", name)
+                        }));
+                    };
+
+                    let rule = rules.iter_mut().find(|r| {&r.name == rulename}).unwrap();
+                    rule.used = true;
+                    update_rule_precondition(rule, &name);
+                    base_rules.push(rulename.to_string());
                 }
             } else {
                 // base_rules is not a sequence, error
@@ -175,15 +160,24 @@ pub fn parse_types(types: &Mapping, rules: &mut Vec<SandRule>) -> anyhow::Result
             name,
             inherits: parent,
             children: vec![],
-            base_rules,
-            accum_rules
+            base_rules
         };
         type_structs.push(s_type.clone());
         glsl_structs.push(Box::new(s_type));
 
         idx += 1;
+    };
+
+    for sandtype in type_structs.clone() {
+        if sandtype.inherits.is_empty() {
+            continue;
+        };
+        for rule in get_parents_rules(&type_structs, &sandtype) {
+            let rule = rules.iter_mut().find(|r| {r.name == rule}).unwrap();
+            update_rule_precondition(rule, &sandtype.name);
+        }
     }
-    
+
     Ok((type_structs, glsl_structs))
 }
 
@@ -205,21 +199,12 @@ fn add_child_to_type(parent_name: &str, childname: &str, types: &mut Vec<SandTyp
     }
 }
 
-
-/// Recursively collects all the parents and grandparents base_rules
-fn get_accum_rules(all_types: &Vec<SandType>, current_type: &SandType) -> Vec<String> {
-    if !current_type.inherits.is_empty() {
-        for t in all_types {
-            if t.name == current_type.inherits {
-                // We found our parent, add its rules to the list
-                let mut parent_rules = get_accum_rules(all_types, t);
-                let mut r = current_type.base_rules.clone();
-                r.append(&mut parent_rules);
-                return r;
-            }
-        }
+fn get_parents_rules(all_types: &Vec<SandType>, current_type: &SandType) -> Vec<String> {
+    if current_type.inherits.is_empty() {
         return vec![];
-    } else {
-        return current_type.base_rules.clone();
-    }
+    };
+    let parent = all_types.iter().find(|parent| {parent.name == current_type.inherits}).unwrap();
+    let mut rules = parent.base_rules.clone();
+    rules.append(&mut get_parents_rules(all_types, parent));
+    rules
 }

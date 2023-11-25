@@ -47,25 +47,8 @@ impl GLSLConvertible for SandMaterial {
 }
 
 
-/// Looks at all the keys in the 'materials' and collects them
-pub fn parse_material_names(materials: &Mapping) -> anyhow::Result<Vec<String>> {
-    let mut matnames = vec![];
-    for mat in materials {
-        let name = mat.0.as_str()
-            .ok_or(anyhow!(ParsingErr::InvalidType {
-                wrong_type: mat.0.clone(),
-                missing_in: "materials".to_string(),
-                expected: TYPE_HINT_STRING
-            }))?
-            .to_string();
-        matnames.push(name);
-    };
-    Ok(matnames)
-}
-
-
 /// Parses a serde_yaml Mapping (dict) and converts it into SandMaterial's
-pub fn parse_materials(materials: &Mapping, rules: &mut Vec<SandRule>, types: &Vec<SandType>) -> anyhow::Result<(Vec<SandMaterial>, Vec<Box<dyn GLSLConvertible>>)> {
+pub fn parse_materials(materials: &Mapping, rules: &mut Vec<SandRule>, type_names: &Vec<String>) -> anyhow::Result<(Vec<SandMaterial>, Vec<Box<dyn GLSLConvertible>>)> {
     let mut material_structs: Vec<SandMaterial> = vec![
         SandMaterial {
             id: 0,
@@ -127,14 +110,7 @@ pub fn parse_materials(materials: &Mapping, rules: &mut Vec<SandRule>, types: &V
                 expected: TYPE_HINT_STRING
             }))?
             .to_string();
-        let mut type_valid = false;
-        for t in types {
-            if t.name == mattype {
-                type_valid = true;
-                break;
-            }
-        };
-        if !type_valid {
+        if !type_names.contains(&mattype) {
             bail!(ParsingErr::<bool>::NotFound {
                 missing: mattype,
                 missing_in: format!("materials/{}/type", name)

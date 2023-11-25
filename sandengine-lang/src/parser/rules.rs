@@ -101,7 +101,7 @@ impl GLSLConvertible for SandRule {
 
 
 /// Parses a serde_yaml Mapping (dict) and converts it into SandRule's
-pub fn parse_rules(rules: &Mapping, material_names: Vec<String>) -> anyhow::Result<(Vec<SandRule>, Vec<Box<dyn GLSLConvertible>>)> {
+pub fn parse_rules(rules: &Mapping, type_names: &Vec<String>, material_names: &Vec<String>) -> anyhow::Result<(Vec<SandRule>, Vec<Box<dyn GLSLConvertible>>)> {
     let mut rule_structs: Vec<SandRule> = vec![];
     let mut glsl_structs: Vec<Box<dyn GLSLConvertible>> = vec![];
 
@@ -118,7 +118,7 @@ pub fn parse_rules(rules: &Mapping, material_names: Vec<String>) -> anyhow::Resu
         let mut if_conds = vec![];
         let mut do_actions = vec![];
         // Parse (possibly nested) if's and do's
-        parse_conditionals(key.1, false, format!("rules/{}", name), &mut if_conds, &mut do_actions, &material_names)?;
+        parse_conditionals(key.1, false, format!("rules/{}", name), &mut if_conds, &mut do_actions, &type_names, &material_names)?;
         
 
         // Checks the input for the 'mirrored' keyword, uses default value if not found
@@ -155,6 +155,7 @@ pub fn parse_rules(rules: &Mapping, material_names: Vec<String>) -> anyhow::Resu
         let do_precondition = {
             let pre = key.1.get("precondition");
             if let Some(pre) = pre {
+                // TODO: Make option for precondition to also be a string
                 if let Some(pre) = pre.as_bool() {
                     pre
                 } else {
@@ -172,6 +173,7 @@ pub fn parse_rules(rules: &Mapping, material_names: Vec<String>) -> anyhow::Resu
             false => None
         };
 
+        // Check if the "probability" key exists, use the default value if not
         let prob = key.1.get("probability");
         let probability = {
             if let Some(prob) = prob {
@@ -208,7 +210,15 @@ pub fn parse_rules(rules: &Mapping, material_names: Vec<String>) -> anyhow::Resu
 
 
 /// Function to recursively parse the if-do-else's
-fn parse_conditionals(parent: &Value, parent_is_else: bool, parent_path: String, if_conds: &mut Vec<String>, do_actions: &mut Vec<String>, material_names: &Vec<String>) -> anyhow::Result<()> {
+fn parse_conditionals(
+    parent: &Value,
+    parent_is_else: bool,
+    parent_path: String,
+    if_conds: &mut Vec<String>,
+    do_actions: &mut Vec<String>,
+    type_names: &Vec<String>,
+    material_names: &Vec<String>
+) -> anyhow::Result<()> {
     let if_cond = parent.get("if");
 
     // We are on the top level of all conditions, so an 'if' is mandatory
@@ -219,6 +229,7 @@ fn parse_conditionals(parent: &Value, parent_is_else: bool, parent_path: String,
         }));
     } else if if_cond.is_some() {
         let if_cond = if_cond.unwrap();
+        let parent_path = format!("{}/if", parent_path);
 
         // Check that the if condition has the right type
         let mut if_cond = if_cond.as_str()
@@ -237,16 +248,33 @@ fn parse_conditionals(parent: &Value, parent_is_else: bool, parent_path: String,
         //               VVV
         // "SELF.mat == vine"
         
-        let material_pattern = r"\w* [[:punct:]]* (\w*)";
+        let material_pattern = r"\w*.mat\s*(==|!=)\s*(\w*)";
         let re = Regex::new(material_pattern).unwrap();
-        
-        re.captures_iter(if_cond.clone().as_str()).for_each(|captures| {
+        'outer: for capture in re.captures_iter(if_cond.clone().as_str()) {
+            let capture = capture.get(2).unwrap().as_str();
             for m in material_names {
-                if m == captures.get(1).unwrap().as_str() {
+                if m == capture {
                     if_cond = if_cond.replace(m, format!("MAT_{}", m).as_str());
+                    continue 'outer;
                 };
+            };
+            bail!(anyhow!(ParsingErr::NotFound::<bool> {
+                missing: capture.to_string(),
+                missing_in: format!("{}", parent_path)
+            }));
+        };
+
+        let type_pattern = r"isType_(\w*)\(\w*\)";
+        let re = Regex::new(type_pattern).unwrap();
+        for capture in re.captures_iter(if_cond.clone().as_str()) {
+            let capture = capture.get(1).unwrap().as_str();
+            if !type_names.contains(&capture.to_string()) {
+                bail!(anyhow!(ParsingErr::NotFound::<bool> {
+                    missing: capture.to_string(),
+                    missing_in: format!("{} -> isType_", parent_path)
+                }));
             }
-        });
+        };
 
         if_conds.push(if_cond);
     }
@@ -259,6 +287,7 @@ fn parse_conditionals(parent: &Value, parent_is_else: bool, parent_path: String,
             missing_in: format!("{}", parent_path)
         }))?;
     
+    let parent_path = format!("{}/do", parent_path);
 
     // Do processing on the 'do' to convert it into something more GLSL-like
     // The final string that is the do action
@@ -284,7 +313,7 @@ fn parse_conditionals(parent: &Value, parent_is_else: bool, parent_path: String,
 
     let else_: Option<&Value> = parent.get("else");
     if let Some(e) = else_ {
-        parse_conditionals(e, true, format!("{}/else", parent_path), if_conds, do_actions, material_names)
+        parse_conditionals(e, true, format!("{}/else", parent_path), if_conds, do_actions, type_names, material_names)
     } else {
         Ok(())
     }
@@ -329,14 +358,14 @@ fn parse_do(parent: &str, do_str: &str) -> anyhow::Result<String> {
         if !GLOBAL_CELLNAMES.contains(&first_cell) {
             bail!(ParsingErr::<bool>::NotFound {
                 missing: first_cell.to_string(),
-                missing_in: format!("{}/do", parent)
+                missing_in: format!("{}", parent)
             });
         };
         let second_cell = captures.get(2).unwrap().as_str();
         if !GLOBAL_CELLNAMES.contains(&second_cell) {
             bail!(ParsingErr::<bool>::NotFound {
                 missing: second_cell.to_string(),
-                missing_in: format!("{}/do", parent)
+                missing_in: format!("{}", parent)
             });
         }
 
@@ -357,7 +386,7 @@ fn parse_do(parent: &str, do_str: &str) -> anyhow::Result<String> {
         if !GLOBAL_CELLNAMES.contains(&first_arg) {
             bail!(ParsingErr::<bool>::NotFound {
                 missing: first_arg.to_string(),
-                missing_in: format!("{}/do", parent)
+                missing_in: format!("{}", parent)
             });
         }
         // TODO: Check if it is either a GLOBAL_CELL or material
@@ -369,7 +398,7 @@ fn parse_do(parent: &str, do_str: &str) -> anyhow::Result<String> {
     if !found_match {
         bail!(ParsingErr::<bool>::NotRecognized {
             unrecog: do_str.to_string(),
-            missing_in: format!("{}/do", parent)
+            missing_in: format!("{}", parent)
         });
     }
 
