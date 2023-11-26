@@ -44,18 +44,22 @@ pub struct SandRule {
 }
 impl SandRule {
     /// Helpers function to handle nested conditionals and actions
-    fn get_func_logic(mut if_conds: Vec<String>, mut do_actions: Vec<String>) -> String {
+    fn get_func_logic(mut if_conds: Vec<String>, mut do_actions: Vec<String>, indent_lvl: usize) -> String {
         if if_conds.is_empty() && do_actions.is_empty() {
             return String::new();
         } else if if_conds.is_empty() && !do_actions.is_empty() {
             return do_actions.remove(0);
         } else if !if_conds.is_empty() && !do_actions.is_empty() {
+            let ind1 = " ".repeat(indent_lvl * 4);
+            let ind2 = " ".repeat((indent_lvl + 1) * 4);
             return format!(
-"if ({}) {{
-    {}
-}} else {{
-    {}
-}}", if_conds.remove(0), do_actions.remove(0), SandRule::get_func_logic(if_conds, do_actions));
+"{ind1}if ({}) {{
+{ind2}{}
+{ind1}}} else {{
+{}
+{ind1}}}", if_conds.remove(0),
+            do_actions.remove(0),
+            SandRule::get_func_logic(if_conds, do_actions, indent_lvl + 1));
         };
         String::new()
     }
@@ -70,9 +74,9 @@ impl GLSLConvertible for SandRule {
         let probability = {
             if self.probability != DEFAULT_VAL_PROBABILITY {
                 format!(
-                    "if (rand.y > {}) {{
-                        return;
-                    }}", self.probability)
+"    if (rand.y > {}) {{
+        return;
+    }}\n", self.probability)
             } else {
                 String::new()
             }
@@ -80,19 +84,20 @@ impl GLSLConvertible for SandRule {
 
         let precond = match &self.precondition {
             Some(cond) => format!(
-"if (!({})) {{
-    return;
-}}", cond),
+"    if (!({})) {{
+        return;
+    }}\n", cond),
             None => String::new(),
         };
         format!(
 "void rule_{rulename} (inout Cell self, inout Cell {celldir}, inout Cell down, inout Cell downright, vec4 rand, ivec2 pos) {{
-    {probability_check}
-    {precondition}
-
-    {ruletext}
-}}", rulename = self.name, celldir = directional_cell, probability_check = probability, precondition = precond, ruletext = SandRule::get_func_logic(self.if_conds.clone(), self.do_actions.clone()))
-
+{probability_check}{precondition}{ruletext}
+}}", rulename = self.name,
+    celldir = directional_cell,
+    probability_check = probability,
+    precondition = precond,
+    ruletext = SandRule::get_func_logic(self.if_conds.clone(), self.do_actions.clone(), 1))
+    
     }
 }
 

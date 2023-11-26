@@ -61,16 +61,15 @@ bool isType_plant(Cell cell) {
 Material[10] materials() {
     Material allMaterials[10] = {
         MAT_EMPTY,
-MAT_NULL,
-MAT_WALL,
-MAT_sand,
-MAT_rock,
-MAT_water,
-MAT_radioactive,
-MAT_smoke,
-MAT_toxic_sludge,
-MAT_vine,
-
+        MAT_NULL,
+        MAT_WALL,
+        MAT_sand,
+        MAT_rock,
+        MAT_water,
+        MAT_radioactive,
+        MAT_smoke,
+        MAT_toxic_sludge,
+        MAT_vine
     };
     return allMaterials;
 }

@@ -30,16 +30,25 @@ pub fn create_glsl_from_parser(result: &ParsingResult) {
     };
     materials_types.push('\n');
     let mut all_mats_list = String::new();
+    let mut num_mats_added = 0;
     for m in result.materials.iter() {
         materials_types.push_str(m.get_glsl_code().as_str());
-        all_mats_list.push_str(format!("MAT_{},\n", m.name.clone()).as_str());
+        let end_of_line = {
+            if num_mats_added == result.materials.len() - 1 {
+                ""
+            } else {
+                ",\n"
+            }
+        };
+        all_mats_list.push_str(format!("        MAT_{}{eol}", m.name.clone(), eol=end_of_line).as_str());
+        num_mats_added += 1;
     };
 
     // We need those functions on the GPU side for converting the uniform inputMaterialID into a material struct
     let helpers_functions = format!("
 Material[{}] materials() {{
     Material allMaterials[{}] = {{
-        {}
+{}
     }};
     return allMaterials;
 }}
