@@ -27,13 +27,19 @@ rules:
   grow:
     if: isType_EMPTY(SELF) and DOWN.mat == sand and DOWNRIGHT.mat == water
     do: SET SELF vine
+    probability: 0.001
     precondition: false
     mirrored: true
   grow_up:
     if: isType_EMPTY(SELF) and DOWN.mat == vine
     do: SET SELF vine
     precondition: false
+    probability: 0.004
     mirrored: true
+  die_off:
+    if: SELF.mat == vine and isType_EMPTY(DOWN)
+    do: SET SELF EMPTY
+    probability: 0.3
 
 
 types:
@@ -99,5 +105,6 @@ materials:
     color: [87, 127, 62]
     density: 2.5
     extra_rules: [
-      grow_up
+      grow_up,
+      die_off
     ]
