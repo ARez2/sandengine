@@ -22,6 +22,7 @@ shaders were introduced).
 - [ ] include preview GIFs in `README.md`
 - [ ] provide more example materials in `data.yaml`
 - [ ] continue to improve `physics` branch an merge with `main` branch
+- [ ] add some sort of "Modification" System like explosions, cell placements (drawing)
 - [ ] add more diverse material shading options, modify noise based on Material or provide lookup textures for color
 - [ ] explore methods of 3x3 Margolus neighborhood
 - [ ] provide builds (win, mac, linux x86/ arm)
