@@ -78,9 +78,6 @@ vec2 new_pos = rotatePoint(self.pos, bodies[my_body_idx].rotation, bodies[my_bod
 ### Add Sprite System
 - Convert sprites into SimMaterial
 
-### Improve sandengine-lang
-- Preprocess all files, collect names, so that order becomes irrelevant
-
 ### World loading/ unloading
 - Using chunks, save all relevant textures
 
