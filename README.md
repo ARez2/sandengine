@@ -4,12 +4,27 @@
 ## A note on compatibility
 
 Even though the fragment and vertex shader use OpenGL version 1.4, the compute
-shaders which runs the simulation **requires OpenGL 4.3** (version from 2012, where compute
+shaders which run the simulation **requires OpenGL 4.3** (version from 2012, where compute
 shaders were introduced).
 
 
 
 ## Todo
+
+- [x] Add `RAND` value accessible for rules
+- [ ] Add custom Storage fields (maybe transform the cell data texture into a texture array)
+  - Can be used for lifetime, remaining grow height of plants etc.
+- [ ] Add particle systems (maybe separate compute shader to run in parallel to the falling sand sim?)
+- [ ] Improve pixel lighting
+  - [ ] respect the canvas size/ look similar even on multiple canvas sizes
+  - [ ] be customizable
+  - [ ] maybe remove flood fill in favor of more static lighting? Or improve flood fill
+- [ ] include preview GIFs in `README.md`
+- [ ] provide more example materials in `data.yaml`
+- [ ] continue to improve `physics` branch an merge with `main` branch
+- [ ] add more diverse material shading options, modify noise based on Material or provide lookup textures for color
+- [ ] explore methods of 3x3 Margolus neighborhood
+- [ ] provide builds (win, mac, linux x86/ arm)
 
 ### Usability
 
