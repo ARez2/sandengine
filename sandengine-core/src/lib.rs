@@ -15,14 +15,6 @@ use winit::event::{WindowEvent, Event, MouseButton, ElementState, MouseScrollDel
 use winit::event_loop::ControlFlow;
 
 
-
-// One texture for collision:
-// each pixel holds a normalized coordinate of a collision point. If the pixel value is vec4(0.0) this means nothing/ gap
-// once the next line of coordinates starts until the next vec4(0.0) means one collision island
-
-// TODO: make a texture for input. All pixels on that will be setCell'ed and then cleared.
-
-
 /// Core function of the engine. Includes the event loop with simulation, rendering and UI
 pub fn run(parsing_result: sandengine_lang::parser::ParsingResult) {
     // Collects a list of selectable materials, given all the SandMaterial structs from the parser
@@ -33,8 +25,6 @@ pub fn run(parsing_result: sandengine_lang::parser::ParsingResult) {
             None
         }
     }).collect();
-    //println!("Selectable: {:?}", selectable_materials);
-
 
     let size = (640, 480);
     //let size = (1920, 1080);
