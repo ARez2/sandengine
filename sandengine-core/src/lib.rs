@@ -5,7 +5,7 @@ use std::time::Instant;
 
 pub mod simulation;
 use sandengine_lang::parser::materials::SandMaterial;
-use simulation::Simulation;
+use simulation::{Simulation, SimModification};
 
 pub mod renderer;
 use renderer::{Renderer};
@@ -63,6 +63,15 @@ pub fn run(parsing_result: sandengine_lang::parser::ParsingResult) {
             },
             Event::MainEventsCleared => {
                 renderer.prepare_frame();
+                if sim.params.mousePressed {
+                    sim.modifications.push(SimModification{
+                        mod_shape: simulation::MODSHAPE_CIRCLE,
+                        mod_size: sim.params.brushSize as i32,
+                        mod_matID: sim.params.brushMaterial.id as i32,
+                        position: [(sim.params.mousePos.0 * size.0 as f32) as i32, (sim.params.mousePos.1 * size.1 as f32) as i32],
+                        ..Default::default()
+                    });
+                };
                 sim.run();
             },
             Event::RedrawRequested(_) => {

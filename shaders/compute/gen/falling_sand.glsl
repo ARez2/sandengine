@@ -3,7 +3,6 @@ layout(local_size_x = 16, local_size_y = 16, local_size_z = 1) in;
 
 #define SCREEN_IS_BORDER
 #define EMPTY_MAX_DISPERSION_CHECK 8
-#define USE_CIRCLE_BRUSH
 //#define DEBUG_SHOW_UPDATERECT
 //#define DEBUG_SHOW_ORIG_POS
 //#define DEBUG_SHOW_MOVERIGHT
@@ -327,9 +326,6 @@ layout(rgba32f) uniform writeonly image2D output_color;
 // uniform Params {
 // } params 
 uniform bool moveRight;
-uniform vec2 mousePos;
-uniform uint brushSize;
-uniform int brushMaterial;
 uniform float time;
 uniform ivec2 simSize;
 uniform int frame;
@@ -340,6 +336,20 @@ layout(binding = 4) uniform sampler2D input_light;
 layout(rgba32f, binding = 5) uniform writeonly image2D output_light;
 layout(rgba32f, binding = 6) uniform writeonly image2D output_effects;
 layout(r32ui, binding = 7) uniform volatile coherent uimage2D image_lock;
+
+#define MODSHAPE_CIRCLE 0
+#define MODSHAPE_SQUARE 1
+
+struct SimModification {
+    ivec2 position;
+    int mod_shape;
+    int mod_size;
+    int mod_matID;
+};
+
+uniform SimModifications {
+    SimModification sim_modifications[256];
+};
 
 
 
@@ -728,21 +738,52 @@ void main() {
     }
 
 
-    // Process input
-    vec2 mousepos = mousePos * vec2(simSize);
-    vec2 diffMouse = abs(vec2(mousepos - pos));
-    bool applyBrush = false;
-    #ifdef USE_CIRCLE_BRUSH
-    float mouseDist = sqrt(pow(diffMouse.x, 2) + pow(diffMouse.y, 2));
-    applyBrush = brushSize > 0 && mouseDist <= float(brushSize) / 2.0;
-    #else
-    applyBrush = brushSize > 0 && diffMouse.x <= brushSize && diffMouse.y <= float(brushSize) / 2.0;
-    #endif // USE_CIRCLE_BRUSH
-    
-    if (applyBrush) {
-        setCell(pos, getMaterialFromID(brushMaterial));
-        return;
+    bool got_modified = false;
+    Material final_modification_mat = MAT_NULL;
+    int count = 0;
+    for (int i = 0; i < sim_modifications.length(); i++) {
+        SimModification mod = sim_modifications[i];
+        if (mod.mod_size == 0) {
+            break;
+        }
+        
+        ivec2 diff_pos = abs(mod.position - pos);
+        Material mat = getMaterialFromID(mod.mod_matID);
+        switch (mod.mod_shape) {
+            case MODSHAPE_CIRCLE:
+                float dist = sqrt(pow(diff_pos.x, 2) + pow(diff_pos.y, 2));
+                if (dist <= mod.mod_size) {
+                    got_modified = true;
+                    final_modification_mat = mat;
+                    count++;
+                };
+                break;
+            case MODSHAPE_SQUARE:
+                if (diff_pos.x <= mod.mod_size && diff_pos.y <= mod.mod_size) {
+                    got_modified = true;
+                    final_modification_mat = mat;
+                    count++;
+                };
+                break;
+        }
     };
+
+    // if (count == 2) {
+    //     imageStore(output_color, pos, vec4(1.0, 0.0, 0.0, 1.0));
+    // } else if (count == 1) {
+    //     imageStore(output_color, pos, vec4(0.0, 1.0, 0.0, 1.0));
+    // } else if (count > 2) {
+    //     imageStore(output_color, pos, vec4(0.0, 0.0, 1.0, 1.0));
+    // } else {
+    //     imageStore(output_color, pos, vec4(0.0, 0.0, 0.0, 1.0));
+    // }
+
+    // return;
+
+    if (got_modified && final_modification_mat != MAT_NULL) {
+        setCell(pos, final_modification_mat);
+        return;
+    }
 
 
     Cell result = simulate();
