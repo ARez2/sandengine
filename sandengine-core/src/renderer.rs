@@ -4,7 +4,7 @@ use glium::{
 //use imgui_winit_support::WinitPlatform;
 use nphysics2d::nalgebra::Point2;
 use rayon::prelude::*;
-use winit::{event_loop::EventLoop, dpi::PhysicalSize, window::{Icon, Window}, event::{Event, self}};
+use winit::{event_loop::EventLoop, dpi::{PhysicalSize, LogicalSize}, window::{Icon, Window}, event::{Event, self}};
 
 const APPLICATION_ICON: &'static [u8] = include_bytes!("../../icon.png");
 
@@ -70,12 +70,12 @@ pub struct Renderer {
 
 impl Renderer {
     /// Creates a new renderer
-    pub fn new(size: (u32, u32), event_loop: &EventLoop<()>) -> Self {
-        let window_size = PhysicalSize::<u32>::new(size.0, size.1);
+    pub fn new(size: (u32, u32), scale: f32, event_loop: &EventLoop<()>) -> Self {
+        let window_size = PhysicalSize::<f32>::new(size.0 as f32 * scale, size.1 as f32 * scale);
         let (window, display) = glium::backend::glutin::SimpleWindowBuilder::new()
             .with_title("SandEngine")
-            .with_inner_size(window_size.width, window_size.height)
             .build(event_loop);
+        window.set_inner_size(window_size);
 
         // Loads the application (window) icon
         let (icon_rgba, icon_width, icon_height) = {

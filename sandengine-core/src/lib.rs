@@ -26,10 +26,12 @@ pub fn run(parsing_result: sandengine_lang::parser::ParsingResult) {
         }
     }).collect();
 
-    let size = (640, 480);
+    let target_size = (640, 480);
+    let size = (64, 64);
+    let required_scale = target_size.0 as f32 / size.0 as f32;
     //let size = (1920, 1080);
     let event_loop = winit::event_loop::EventLoopBuilder::new().build();
-    let mut renderer = Renderer::new(size, &event_loop);
+    let mut renderer = Renderer::new(size, required_scale, &event_loop);
     let mut sim = Simulation::new(&renderer.display, size);
 
     let mut last_render = Instant::now();
