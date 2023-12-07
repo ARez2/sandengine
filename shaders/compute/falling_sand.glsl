@@ -18,8 +18,9 @@ struct Material {
     int type;
 };
 #include "cell.glsl"
-//#include "materials.glsl"
+
 #include "gen/materials.glsl"
+
 //#include "material_helpers.glsl"
 
 uniform sampler2D input_data;

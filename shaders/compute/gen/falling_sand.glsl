@@ -6,7 +6,7 @@ layout(local_size_x = 16, local_size_y = 16, local_size_z = 1) in;
 //#define DEBUG_SHOW_UPDATERECT
 //#define DEBUG_SHOW_ORIG_POS
 //#define DEBUG_SHOW_MOVERIGHT
-#define UP ivec2(0, -1)
+#define UP ivec2(0, -1)
 #define DOWN ivec2(0, 1)
 #define LEFT ivec2(-1, 0)
 #define RIGHT ivec2(1, 0)
@@ -39,7 +39,7 @@ ivec2[2] getMoveDirs(ivec2 pos, bool moveRight) {
 }
 
 
-// Gold Noise ©2015 dcerisano@standard3d.com
+// Gold Noise ©2015 dcerisano@standard3d.com
 // - based on the Golden Ratio
 // - uniform normalized distribution
 // - fastest static noise generator function (also runs at low precision)
@@ -215,7 +215,7 @@ struct Material {
     vec4 emission;
 
     int type;
-};
+};
 
 
 struct Cell {
@@ -229,7 +229,7 @@ Cell newCell(Material mat, ivec2 pos) {
 
 
 
-//#include "materials.glsl"#define TYPE_EMPTY 0
+#define TYPE_EMPTY 0
 
 #define TYPE_NULL 1
 
@@ -318,6 +318,7 @@ Material getMaterialFromID(int id) {
 
 
 
+
 //#include "material_helpers.glsl"
 
 uniform sampler2D input_data;
@@ -350,14 +351,14 @@ struct SimModification {
 uniform SimModifications {
     SimModification sim_modifications[256];
 };
-
+
 
 
 bool outOfBounds(vec2 pos) {
-    return pos.x >= simSize.x - 1 || pos.x < 0 || pos.y >= simSize.y - 1 || pos.y < 0;
+    return pos.x >= simSize.x || pos.x < 0 || pos.y >= simSize.y - 1 || pos.y < 0;
 }
 bool outOfBounds(ivec2 pos) {
-    return pos.x >= simSize.x - 1 || pos.x < 0 || pos.y >= simSize.y - 1 || pos.y < 0;
+    return pos.x >= simSize.x || pos.x < 0 || pos.y >= simSize.y - 1 || pos.y < 0;
 }
 
 void swap(inout vec4 a, inout vec4 b) {
