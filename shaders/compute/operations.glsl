@@ -2,10 +2,10 @@
 
 
 bool outOfBounds(vec2 pos) {
-    return pos.x >= simSize.x - 1 || pos.x < 0 || pos.y >= simSize.y - 1 || pos.y < 0;
+    return pos.x >= simSize.x || pos.x < 0 || pos.y >= simSize.y || pos.y < 0;
 }
 bool outOfBounds(ivec2 pos) {
-    return pos.x >= simSize.x - 1 || pos.x < 0 || pos.y >= simSize.y - 1 || pos.y < 0;
+    return pos.x >= simSize.x || pos.x < 0 || pos.y >= simSize.y || pos.y < 0;
 }
 
 void swap(inout vec4 a, inout vec4 b) {
