@@ -6,6 +6,14 @@ rules:
       if: RIGHT.mat.density < SELF.mat.density and DOWNRIGHT.mat.density < SELF.mat.density
       do: SWAP SELF DOWNRIGHT
     mirrored: true
+  fall_slide_dirt:
+    if: DOWN.mat.density < SELF.mat.density
+    do: SWAP SELF DOWN
+    else:
+      if: RIGHT.mat.density < SELF.mat.density and DOWNRIGHT.mat.density < SELF.mat.density
+      probability: 0.1
+      do: SWAP SELF DOWNRIGHT
+    mirrored: true
   horizontal_slide:
     if: isType_liquid(SELF) and RIGHT.mat.density < SELF.mat.density
     do: SWAP SELF RIGHT
@@ -46,9 +54,6 @@ types:
   solid:
   movable_solid:
     inherits: solid
-    base_rules: [
-        fall_slide
-    ]
   liquid:
     base_rules: [
         fall_slide,
@@ -69,6 +74,9 @@ materials:
     type: movable_solid
     color: [1.0, 1.0, 0]
     density: 1.5
+    extra_rules: [
+      fall_slide
+    ]
   
   rock:
     type: solid
@@ -102,9 +110,18 @@ materials:
   
   vine:
     type: plant
+    selectable: false
     color: [87, 127, 62]
     density: 2.5
     extra_rules: [
       grow_up,
       die_off
+    ]
+  
+  dirt:
+    type: movable_solid
+    color: [110, 71, 37]
+    density: 1.5
+    extra_rules: [
+      fall_slide_dirt
     ]

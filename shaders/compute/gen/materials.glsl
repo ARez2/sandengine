@@ -57,9 +57,10 @@ bool isType_plant(Cell cell) {
 #define MAT_smoke Material(7, vec4(0.3, 0.3, 0.3, 0.3), 0.1, vec4(0, 0, 0, 0), TYPE_gas)
 #define MAT_toxic_sludge Material(8, vec4(0, 0.7, 0, 0.5), 1.49, vec4(0.7, 0, 0, 0.99999), TYPE_liquid)
 #define MAT_vine Material(9, vec4(0.34117648, 0.49803922, 0.24313726, 1), 2.5, vec4(0, 0, 0, 0), TYPE_plant)
+#define MAT_dirt Material(10, vec4(0.43137255, 0.2784314, 0.14509805, 1), 1.5, vec4(0, 0, 0, 0), TYPE_movable_solid)
 
-Material[10] materials() {
-    Material allMaterials[10] = {
+Material[11] materials() {
+    Material allMaterials[11] = {
         MAT_EMPTY,
         MAT_NULL,
         MAT_WALL,
@@ -69,7 +70,8 @@ Material[10] materials() {
         MAT_radioactive,
         MAT_smoke,
         MAT_toxic_sludge,
-        MAT_vine
+        MAT_vine,
+        MAT_dirt
     };
     return allMaterials;
 }

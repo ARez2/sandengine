@@ -32,34 +32,42 @@ pub struct SandRule {
     pub if_conds: Vec<String>,
     /// Action(s) that will be run when the if-condition evals to true
     pub do_actions: Vec<String>,
+    /// The probabilities that each if-else level will be run
+    pub probabilities: Vec<f32>,
     /// Whether the rule is mirrored horizontally
     pub mirror: bool,
     /// Condition that needs to be true in order for the rule to be run.
     /// Can be either a material check or type check
     pub precondition: Option<String>,
-    /// The probability that this rule will be run
-    pub probability: f32,
     /// Whether the rule is used as a base_rule of a type of as extra_rule of a material
     pub used: bool,
 }
 impl SandRule {
     /// Helpers function to handle nested conditionals and actions
-    fn get_func_logic(mut if_conds: Vec<String>, mut do_actions: Vec<String>, indent_lvl: usize) -> String {
+    fn get_func_logic(mut if_conds: Vec<String>, mut do_actions: Vec<String>, mut probabilities: Vec<f32>, indent_lvl: usize) -> String {
         if if_conds.is_empty() && do_actions.is_empty() {
             return String::new();
         } else if if_conds.is_empty() && !do_actions.is_empty() {
             return do_actions.remove(0);
         } else if !if_conds.is_empty() && !do_actions.is_empty() {
             let ind1 = " ".repeat(indent_lvl * 4);
-            let ind2 = " ".repeat((indent_lvl + 1) * 4);
+            let ind2 = " ".repeat((indent_lvl + 1) * 4);;
+            let p = probabilities.remove(0);
+            let prob = {
+                if p == DEFAULT_VAL_PROBABILITY {
+                    String::new()
+                } else {
+                    format!("rand.y <= {} && ", p)
+                }
+            };
             return format!(
-"{ind1}if ({}) {{
+"{ind1}if ({prob}{}) {{
 {ind2}{}
 {ind1}}} else {{
 {}
 {ind1}}}", if_conds.remove(0),
             do_actions.remove(0),
-            SandRule::get_func_logic(if_conds, do_actions, indent_lvl + 1));
+            SandRule::get_func_logic(if_conds, do_actions, probabilities, indent_lvl + 1));
         };
         String::new()
     }
@@ -71,17 +79,6 @@ impl GLSLConvertible for SandRule {
             SandRuleType::Left => "left"
         };
 
-        let probability = {
-            if self.probability != DEFAULT_VAL_PROBABILITY {
-                format!(
-"    if (rand.y > {}) {{
-        return;
-    }}\n", self.probability)
-            } else {
-                String::new()
-            }
-        };
-
         let precond = match &self.precondition {
             Some(cond) => format!(
 "    if (!({})) {{
@@ -91,12 +88,11 @@ impl GLSLConvertible for SandRule {
         };
         format!(
 "void rule_{rulename} (inout Cell self, inout Cell {celldir}, inout Cell down, inout Cell downright, vec4 rand, ivec2 pos) {{
-{probability_check}{precondition}{ruletext}
+{precondition}{ruletext}
 }}", rulename = self.name,
     celldir = directional_cell,
-    probability_check = probability,
     precondition = precond,
-    ruletext = SandRule::get_func_logic(self.if_conds.clone(), self.do_actions.clone(), 1))
+    ruletext = SandRule::get_func_logic(self.if_conds.clone(), self.do_actions.clone(), self.probabilities.clone(), 1))
     
     }
 }
@@ -122,8 +118,18 @@ pub fn parse_rules(rules: &Mapping, type_names: &Vec<String>, material_names: &V
         
         let mut if_conds = vec![];
         let mut do_actions = vec![];
+        let mut probabilities = vec![];
         // Parse (possibly nested) if's and do's
-        parse_conditionals(key.1, false, format!("rules/{}", name), &mut if_conds, &mut do_actions, &type_names, &material_names)?;
+        parse_conditionals(
+            key.1,
+            false,
+            format!("rules/{}", name),
+            &mut if_conds,
+            &mut do_actions,
+            &mut probabilities,
+            &type_names,
+            &material_names
+        )?;
         
 
         // Checks the input for the 'mirrored' keyword, uses default value if not found
@@ -178,31 +184,14 @@ pub fn parse_rules(rules: &Mapping, type_names: &Vec<String>, material_names: &V
             false => None
         };
 
-        // Check if the "probability" key exists, use the default value if not
-        let prob = key.1.get("probability");
-        let probability = {
-            if let Some(prob) = prob {
-                if let Some(prob) = prob.as_f64() {
-                    prob as f32
-                } else {
-                    bail!(ParsingErr::InvalidType {
-                        wrong_type: "probability",
-                        missing_in: format!("rules/{}", name),
-                        expected: TYPE_HINT_FLOAT })
-                }
-            } else {
-                DEFAULT_VAL_PROBABILITY
-            }
-        };
-
         let rule = SandRule {
             name,
             ruletype,
             if_conds,
             do_actions,
+            probabilities,
             mirror: is_mirrored,
             precondition,
-            probability,
             used: false,
         };
         //println!("{:#?}", rule);
@@ -221,6 +210,7 @@ fn parse_conditionals(
     parent_path: String,
     if_conds: &mut Vec<String>,
     do_actions: &mut Vec<String>,
+    probabilities: &mut Vec<f32>,
     type_names: &Vec<String>,
     material_names: &Vec<String>
 ) -> anyhow::Result<()> {
@@ -292,13 +282,13 @@ fn parse_conditionals(
             missing_in: format!("{}", parent_path)
         }))?;
     
-    let parent_path = format!("{}/do", parent_path);
+    let do_parent_path = format!("{}/do", parent_path);
 
     // Do processing on the 'do' to convert it into something more GLSL-like
     // The final string that is the do action
     let mut do_string = String::new();
     if let Some(do_action) = do_action.as_str() {
-        do_string = parse_do(&parent_path, &do_action)?;
+        do_string = parse_do(&do_parent_path, &do_action)?;
         parse_global_scope(&mut do_string);
     };
 
@@ -306,19 +296,38 @@ fn parse_conditionals(
     if let Some(do_list) = do_action.as_sequence() {
         for do_action in do_list {
             if let Some(do_action) = do_action.as_str() {
-                let mut do_str = parse_do(&parent_path, do_action)?;
+                let mut do_str = parse_do(&do_parent_path, do_action)?;
                 parse_global_scope(&mut do_str);
                 do_string.push_str(&do_str);
             }
         }
     };
     do_string = do_string.trim_end().to_string();
-
     do_actions.push(do_string);
+
+
+    // Check if the "probability" key exists, use the default value if not
+    let prob = parent.get("probability");
+    let probability = {
+        if let Some(prob) = prob {
+            if let Some(prob) = prob.as_f64() {
+                prob as f32
+            } else {
+                bail!(ParsingErr::InvalidType {
+                    wrong_type: "probability",
+                    missing_in: format!("{}", parent_path),
+                    expected: TYPE_HINT_FLOAT })
+            }
+        } else {
+            DEFAULT_VAL_PROBABILITY
+        }
+    };
+    probabilities.push(probability);
+
 
     let else_: Option<&Value> = parent.get("else");
     if let Some(e) = else_ {
-        parse_conditionals(e, true, format!("{}/else", parent_path), if_conds, do_actions, type_names, material_names)
+        parse_conditionals(e, true, format!("{}/else", parent_path), if_conds, do_actions, probabilities, type_names, material_names)
     } else {
         Ok(())
     }

@@ -25,9 +25,10 @@ pub fn run(parsing_result: sandengine_lang::parser::ParsingResult) {
             None
         }
     }).collect();
+    println!("{:#?}", selectable_materials);
 
-    let target_size = (640, 480);
     let size = (64, 64);
+    let target_size = (640.max(size.0), 480.max(size.1));
     let required_scale = target_size.0 as f32 / size.0 as f32;
     //let size = (1920, 1080);
     let event_loop = winit::event_loop::EventLoopBuilder::new().build();
