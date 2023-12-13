@@ -22,7 +22,7 @@ void rule_fall_slide_dirt (inout Cell self, inout Cell right, inout Cell down, i
     if (down.mat.density < self.mat.density) {
         swap(self, down);
     } else {
-        if (rand.y <= 0.01 && right.mat.density < self.mat.density && downright.mat.density < self.mat.density) {
+        if (rand.y <= 0.1 && right.mat.density < self.mat.density && downright.mat.density < self.mat.density) {
             swap(self, downright);
         } else {
 
