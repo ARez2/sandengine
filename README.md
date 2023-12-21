@@ -26,6 +26,7 @@ shaders were introduced).
 - [ ] add more diverse material shading options, modify noise based on Material or provide lookup textures for color
 - [ ] explore methods of 3x3 Margolus neighborhood
 - [ ] provide builds (win, mac, linux x86/ arm)
+- [ ] performance optimizations (profiling, work group size, dispatch size etc.)
 
 ### Usability
 
