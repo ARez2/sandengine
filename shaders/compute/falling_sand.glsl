@@ -125,8 +125,9 @@ void main() {
         return;
     };
 
-    if (time < 0.1) {
+    if (frame == 1) {
         setCell(pos, MAT_EMPTY);
+        return;
     }
 
 
