@@ -1,5 +1,7 @@
 # Sandengine - a falling sand simulation engine written in GLSL and Rust
 
+# A rewrite to wgpu is currently in progress.
+
 
 ## A note on compatibility
 
