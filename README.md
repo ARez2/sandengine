@@ -1,6 +1,6 @@
 # Sandengine - a falling sand simulation engine written in GLSL and Rust
 
-# A rewrite to wgpu is currently in progress.
+# A rewrite to wgpu can be found [here](https://github.com/ARez2/granular)
 
 
 ## A note on compatibility
