@@ -8,7 +8,7 @@ edition = "2021"
 [dependencies]
 glium = {git = "https://github.com/glium/glium.git", branch = "master"}
 winit = {version = "0.28.6"}
-rand = "0.8.5"
+rand = "0.8.6"
 image = "0.24.6"
 nphysics2d = "0.24.0"
 rayon = "1.7.0"
